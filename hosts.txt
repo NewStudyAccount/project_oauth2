@@ -1,0 +1,8 @@
+# OAuth2 SSO 项目 - hosts 配置
+# 将以下内容添加到 C:\Windows\System32\drivers\etc\hosts (需要管理员权限)
+# 或 /etc/hosts (Linux/Mac)
+
+127.0.0.1  auth.local
+127.0.0.1  app-a.local
+127.0.0.1  app-b.local
+127.0.0.1  api.local
