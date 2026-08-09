@@ -1,68 +1,104 @@
--- =============================================
--- OAuth2 SSO 学习项目 - 数据库初始化脚本
--- =============================================
+-- OAuth2 SSO 统一认证中心数据库
 
--- 创建数据库
-CREATE DATABASE IF NOT EXISTS oauth2_sso DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE oauth2_sso;
-
--- =============================================
--- 1. 用户系统表
--- =============================================
+CREATE DATABASE IF NOT EXISTS oauth2_center DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE oauth2_center;
 
 -- 用户表
 CREATE TABLE IF NOT EXISTS sys_user (
     id          BIGINT PRIMARY KEY AUTO_INCREMENT,
-    username    VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
-    password    VARCHAR(200) NOT NULL COMMENT '密码 (BCrypt)',
-    email       VARCHAR(100) COMMENT '邮箱',
-    enabled     BOOLEAN DEFAULT TRUE COMMENT '是否启用',
+    username    VARCHAR(50)  NOT NULL UNIQUE,
+    password    VARCHAR(200) NOT NULL,
+    nickname    VARCHAR(50),
+    email       VARCHAR(100),
+    phone       VARCHAR(20),
+    status      TINYINT DEFAULT 1 COMMENT '1:正常 0:禁用',
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_username (username)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统用户表';
 
--- 角色表
-CREATE TABLE IF NOT EXISTS sys_role (
-    id   BIGINT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(50) NOT NULL UNIQUE COMMENT '角色名称 (ROLE_USER, ROLE_ADMIN)'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色表';
+-- OAuth2 客户端注册表
+CREATE TABLE IF NOT EXISTS oauth2_client (
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    client_id       VARCHAR(100) NOT NULL UNIQUE,
+    client_secret   VARCHAR(200),
+    client_name     VARCHAR(100),
+    client_type     VARCHAR(20) DEFAULT 'INTERNAL' COMMENT 'INTERNAL:内部应用 THIRD_PARTY:第三方应用',
+    scopes          VARCHAR(500) DEFAULT 'openid,profile,email',
+    grant_types     VARCHAR(200) DEFAULT 'authorization_code,refresh_token',
+    redirect_uris   VARCHAR(1000),
+    require_consent TINYINT DEFAULT 0 COMMENT '是否需要用户确认授权: 0:不需要(内部) 1:需要(第三方)',
+    access_token_ttl INT DEFAULT 1800 COMMENT 'access_token有效期(秒),默认30分钟',
+    refresh_token_ttl INT DEFAULT 604800 COMMENT 'refresh_token有效期(秒),默认7天',
+    status          TINYINT DEFAULT 1 COMMENT '1:正常 0:禁用',
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAuth2客户端表';
 
--- 用户-角色关联表
-CREATE TABLE IF NOT EXISTS sys_user_role (
-    user_id BIGINT NOT NULL,
-    role_id BIGINT NOT NULL,
-    PRIMARY KEY (user_id, role_id),
-    FOREIGN KEY (user_id) REFERENCES sys_user(id) ON DELETE CASCADE,
-    FOREIGN KEY (role_id) REFERENCES sys_role(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户角色关联表';
+-- 用户-系统访问权限表
+CREATE TABLE IF NOT EXISTS user_client_access (
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id     BIGINT NOT NULL,
+    client_id   VARCHAR(100) NOT NULL,
+    allowed     TINYINT DEFAULT 1 COMMENT '1:允许 0:拒绝',
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_user_client (user_id, client_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户-系统访问权限表';
 
--- =============================================
--- 2. Spring Authorization Server 必需表
--- 参考: https://docs.spring.io/spring-authorization-server/reference/getting-started.html
--- =============================================
+-- Token 黑名单（主动撤销）
+CREATE TABLE IF NOT EXISTS oauth2_token_blacklist (
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    jti             VARCHAR(200) NOT NULL UNIQUE COMMENT 'JWT ID',
+    token_value     VARCHAR(500),
+    user_id         BIGINT,
+    client_id       VARCHAR(100),
+    reason          VARCHAR(100) COMMENT '撤销原因: admin_revoke, user_logout, password_changed',
+    expires_at      DATETIME NOT NULL COMMENT '与原token同过期，过期后可清理',
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_jti (jti),
+    INDEX idx_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Token黑名单';
 
--- 客户端注册表
-CREATE TABLE IF NOT EXISTS oauth2_registered_client (
-    id                            VARCHAR(100) PRIMARY KEY,
-    client_id                     VARCHAR(100) NOT NULL,
-    client_id_issued_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    client_secret                 VARCHAR(200) DEFAULT NULL,
-    client_secret_expires_at      TIMESTAMP DEFAULT NULL,
-    client_name                   VARCHAR(200) NOT NULL,
-    client_authentication_methods VARCHAR(1000) NOT NULL,
-    authorization_grant_types     VARCHAR(1000) NOT NULL,
-    redirect_uris                 VARCHAR(1000) DEFAULT NULL,
-    post_logout_redirect_uris     VARCHAR(1000) DEFAULT NULL,
-    scopes                        VARCHAR(1000) NOT NULL,
-    client_settings               VARCHAR(2000) NOT NULL,
-    token_settings                VARCHAR(2000) NOT NULL,
-    UNIQUE KEY uk_client_id (client_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAuth2 客户端注册表';
+-- 审计日志
+CREATE TABLE IF NOT EXISTS sys_audit_log (
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id         BIGINT,
+    username        VARCHAR(50),
+    client_id       VARCHAR(100),
+    action          VARCHAR(50) NOT NULL COMMENT 'LOGIN, LOGOUT, AUTHORIZE, TOKEN_ISSUED, TOKEN_REVOKED, REGISTER, PASSWORD_CHANGED',
+    detail          VARCHAR(500),
+    ip              VARCHAR(50),
+    user_agent      VARCHAR(500),
+    status          VARCHAR(20) COMMENT 'SUCCESS, FAILED',
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user (user_id),
+    INDEX idx_action (action),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='审计日志表';
 
--- 授权记录表
+-- 授权确认记录（第三方应用）
+CREATE TABLE IF NOT EXISTS user_client_consent (
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id     BIGINT NOT NULL,
+    client_id   VARCHAR(100) NOT NULL,
+    scopes      VARCHAR(500),
+    consented_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_user_client (user_id, client_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户授权确认记录';
+
+-- Webhook 订阅表
+CREATE TABLE IF NOT EXISTS webhook_subscriber (
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT,
+    client_id   VARCHAR(100) NOT NULL,
+    event_type  VARCHAR(50) NOT NULL,
+    callback_url VARCHAR(500) NOT NULL,
+    secret      VARCHAR(200),
+    status      TINYINT DEFAULT 1,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_client_event (client_id, event_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Webhook订阅表';
+
+-- Spring Authorization Server 存储表
 CREATE TABLE IF NOT EXISTS oauth2_authorization (
-    id                            VARCHAR(100) PRIMARY KEY,
+    id                            VARCHAR(100) NOT NULL,
     registered_client_id          VARCHAR(100) NOT NULL,
     principal_name                VARCHAR(200) NOT NULL,
     authorization_grant_type      VARCHAR(100) NOT NULL,
@@ -70,40 +106,49 @@ CREATE TABLE IF NOT EXISTS oauth2_authorization (
     attributes                    TEXT DEFAULT NULL,
     state                         VARCHAR(500) DEFAULT NULL,
     authorization_code_value      TEXT DEFAULT NULL,
-    authorization_code_issued_at  TIMESTAMP DEFAULT NULL,
-    authorization_code_expires_at TIMESTAMP DEFAULT NULL,
     authorization_code_metadata   TEXT DEFAULT NULL,
     access_token_value            TEXT DEFAULT NULL,
+    access_token_metadata         TEXT DEFAULT NULL,
     access_token_issued_at        TIMESTAMP DEFAULT NULL,
     access_token_expires_at       TIMESTAMP DEFAULT NULL,
-    access_token_metadata         TEXT DEFAULT NULL,
     access_token_type             VARCHAR(100) DEFAULT NULL,
     access_token_scopes           VARCHAR(1000) DEFAULT NULL,
     oidc_id_token_value           TEXT DEFAULT NULL,
+    oidc_id_token_metadata        TEXT DEFAULT NULL,
     oidc_id_token_issued_at       TIMESTAMP DEFAULT NULL,
     oidc_id_token_expires_at      TIMESTAMP DEFAULT NULL,
-    oidc_id_token_metadata        TEXT DEFAULT NULL,
     oidc_id_token_claims          TEXT DEFAULT NULL,
     refresh_token_value           TEXT DEFAULT NULL,
+    refresh_token_metadata        TEXT DEFAULT NULL,
     refresh_token_issued_at       TIMESTAMP DEFAULT NULL,
     refresh_token_expires_at      TIMESTAMP DEFAULT NULL,
-    refresh_token_metadata        TEXT DEFAULT NULL,
     user_code_value               TEXT DEFAULT NULL,
+    user_code_metadata            TEXT DEFAULT NULL,
     user_code_issued_at           TIMESTAMP DEFAULT NULL,
     user_code_expires_at          TIMESTAMP DEFAULT NULL,
-    user_code_metadata            TEXT DEFAULT NULL,
     device_code_value             TEXT DEFAULT NULL,
+    device_code_metadata          TEXT DEFAULT NULL,
     device_code_issued_at         TIMESTAMP DEFAULT NULL,
     device_code_expires_at        TIMESTAMP DEFAULT NULL,
-    device_code_metadata          TEXT DEFAULT NULL,
-    FOREIGN KEY (registered_client_id) REFERENCES oauth2_registered_client(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAuth2 授权记录表';
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 授权同意表
 CREATE TABLE IF NOT EXISTS oauth2_authorization_consent (
-    registered_client_id VARCHAR(100) NOT NULL,
-    principal_name       VARCHAR(200) NOT NULL,
+    registered_client_id VARCHAR(100)  NOT NULL,
+    principal_name       VARCHAR(200)  NOT NULL,
     authorities          VARCHAR(1000) NOT NULL,
-    PRIMARY KEY (registered_client_id, principal_name),
-    FOREIGN KEY (registered_client_id) REFERENCES oauth2_registered_client(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAuth2 授权同意表';
+    PRIMARY KEY (registered_client_id, principal_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Webhook 发送日志
+CREATE TABLE IF NOT EXISTS webhook_log (
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    subscriber_id   BIGINT NOT NULL,
+    event_type      VARCHAR(50) NOT NULL,
+    payload         TEXT,
+    status          VARCHAR(20) DEFAULT 'PENDING' COMMENT 'PENDING, SUCCESS, FAILED, RETRYING',
+    retry_count     INT DEFAULT 0,
+    next_retry_at   DATETIME,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_status_retry (status, next_retry_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Webhook发送日志';

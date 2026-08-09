@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Spring Boot 应用</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
+        .card { background: #f5f5f5; padding: 24px; border-radius: 8px; }
+        .btn { padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
+    </style>
+</head>
+<body>
+    <h1>Spring Boot 应用</h1>
+    <div class="card">
+        <div sec:authorize="isAuthenticated()">
+            <p>欢迎，<span th:text="${nickname} ?: ${username}">用户</span></p>
+            <p>邮箱：<span th:text="${email} ?: '-'">-</span></p>
+            <a href="/profile" class="btn">个人中心</a>
+            <form action="/logout" method="post" style="display:inline;">
+                <button type="submit" class="btn" style="background:#dc2626;">登出</button>
+            </form>
+        </div>
+        <div sec:authorize="isAnonymous()">
+            <p>请登录以访问应用</p>
+            <a href="/oauth2/authorization/auth-server" class="btn">登录</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>错误 - 统一认证中心</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>出错了</h1>
+        </div>
+        <div class="alert alert-error">
+            <p th:text="${param.message != null ? param.message[0] : '发生了未知错误'}">错误信息</p>
+        </div>
+        <div class="auth-footer">
+            <a th:href="@{/login}">返回登录页</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

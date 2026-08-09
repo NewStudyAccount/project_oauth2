@@ -1,126 +1,76 @@
 <template>
-  <div class="profile">
+  <div class="container">
     <div class="card">
-      <h1>👤 用户资料</h1>
-      <p class="subtitle">从 id_token 解析的用户信息</p>
+      <h2 style="margin-bottom: 24px;">个人中心</h2>
 
-      <div class="info-list">
-        <div class="info-item">
-          <span class="label">用户名 (sub)</span>
-          <span class="value">{{ userInfo?.sub || '-' }}</span>
+      <div v-if="authStore.userInfo">
+        <div class="info-row">
+          <span class="info-label">用户名</span>
+          <span class="info-value">{{ authStore.userInfo.username }}</span>
         </div>
-        <div class="info-item">
-          <span class="label">签发者 (iss)</span>
-          <span class="value">{{ userInfo?.iss || '-' }}</span>
+        <div class="info-row">
+          <span class="info-label">昵称</span>
+          <span class="info-value">{{ authStore.userInfo.nickname || '-' }}</span>
         </div>
-        <div class="info-item">
-          <span class="label">受众 (aud)</span>
-          <span class="value">{{ userInfo?.aud || '-' }}</span>
+        <div class="info-row">
+          <span class="info-label">邮箱</span>
+          <span class="info-value">{{ authStore.userInfo.email || '-' }}</span>
         </div>
-        <div class="info-item">
-          <span class="label">过期时间 (exp)</span>
-          <span class="value">{{ formatTime(userInfo?.exp) }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">签发时间 (iat)</span>
-          <span class="value">{{ formatTime(userInfo?.iat) }}</span>
+        <div class="info-row">
+          <span class="info-label">手机号</span>
+          <span class="info-value">{{ authStore.userInfo.phone || '-' }}</span>
         </div>
       </div>
 
-      <div class="token-section">
-        <h3>Access Token (JWT)</h3>
-        <textarea readonly :value="accessToken" class="token-box"></textarea>
+      <div v-else style="text-align: center; color: #666;">
+        <p>加载中...</p>
       </div>
 
-      <router-link to="/" class="btn">返回首页</router-link>
+      <div style="margin-top: 32px; text-align: center;">
+        <button @click="refreshToken" class="btn btn-primary" style="margin-right: 12px;">刷新 Token</button>
+        <button @click="logout" class="btn btn-primary" style="background: #dc2626;">登出</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useAuthStore } from '../stores/auth.js'
-import { parseJwt } from '../utils/auth.js'
+import { onMounted } from 'vue'
+import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
-const userInfo = computed(() => authStore.userInfo)
-const accessToken = computed(() => authStore.accessToken)
 
-function formatTime(timestamp) {
-  if (!timestamp) return '-'
-  return new Date(timestamp * 1000).toLocaleString('zh-CN')
+onMounted(() => {
+  if (!authStore.userInfo) {
+    authStore.fetchUserInfo()
+  }
+})
+
+function refreshToken() {
+  authStore.refresh()
+  alert('Token 已刷新')
+}
+
+function logout() {
+  authStore.logout()
 }
 </script>
 
 <style scoped>
-.profile {
-  max-width: 600px;
-  margin: 60px auto;
-  padding: 0 20px;
-}
-.card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  padding: 40px;
-}
-h1 {
-  text-align: center;
-  color: #333;
-  margin-bottom: 8px;
-}
-.subtitle {
-  text-align: center;
-  color: #666;
-  margin-bottom: 30px;
-}
-.info-list {
-  margin-bottom: 24px;
-}
-.info-item {
+.info-row {
   display: flex;
-  justify-content: space-between;
-  padding: 12px 0;
+  padding: 16px 0;
   border-bottom: 1px solid #eee;
 }
-.label {
+
+.info-label {
+  width: 100px;
   color: #666;
-  font-size: 14px;
-}
-.value {
-  color: #333;
   font-weight: 500;
-  font-size: 14px;
-  word-break: break-all;
-  max-width: 60%;
-  text-align: right;
 }
-.token-section {
-  margin: 24px 0;
-}
-.token-section h3 {
+
+.info-value {
+  flex: 1;
   color: #333;
-  margin-bottom: 8px;
-}
-.token-box {
-  width: 100%;
-  height: 120px;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-family: monospace;
-  font-size: 12px;
-  resize: vertical;
-  background: #f8f9fa;
-}
-.btn {
-  display: block;
-  text-align: center;
-  padding: 12px 24px;
-  background: #667eea;
-  color: white;
-  border-radius: 8px;
-  text-decoration: none;
-  margin-top: 16px;
 }
 </style>

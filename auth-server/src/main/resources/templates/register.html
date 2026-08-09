@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册账号 - 统一认证中心</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>注册账号</h1>
+            <p>创建您的统一认证账号</p>
+        </div>
+
+        <div th:if="${error}" class="alert alert-error" th:text="${error}">错误</div>
+        <div th:if="${message}" class="alert alert-success" th:text="${message}">消息</div>
+
+        <form th:action="@{/register}" method="post" class="auth-form">
+            <input type="hidden" name="client_id" th:value="${client_id}">
+
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="3-50个字符" required>
+            </div>
+
+            <div class="form-group">
+                <label for="nickname">昵称</label>
+                <input type="text" id="nickname" name="nickname" placeholder="选填">
+            </div>
+
+            <div class="form-group">
+                <label for="email">邮箱</label>
+                <input type="email" id="email" name="email" placeholder="请输入邮箱" required>
+            </div>
+
+            <div class="form-group">
+                <label for="code">验证码</label>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="code" name="code" placeholder="请输入验证码" required style="flex:1;">
+                    <button type="button" onclick="sendCode()" class="btn btn-secondary" style="white-space:nowrap; padding:8px 16px;">发送验证码</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="8位以上，含大小写+数字" required>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">确认密码</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="请再次输入密码" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">注 册</button>
+        </form>
+
+        <div class="auth-footer">
+            <p>已有账号？<a th:href="@{/login}">去登录</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+function sendCode() {
+    const email = document.getElementById('email').value;
+    if (!email) {
+        alert('请输入邮箱');
+        return;
+    }
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/send-code';
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'email';
+    input.value = email;
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
+</body>
+</html>

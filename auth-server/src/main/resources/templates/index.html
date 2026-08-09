@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统一认证中心</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>统一认证中心</h1>
+            <p>欢迎回来，<span th:text="${username}">用户</span></p>
+        </div>
+        <div style="text-align: center;">
+            <p>您已成功登录</p>
+        </div>
+        <div class="auth-footer">
+            <form th:action="@{/logout}" method="post" style="display:inline;">
+                <button type="submit" class="btn btn-primary" style="width:auto; padding: 8px 24px;">登出</button>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

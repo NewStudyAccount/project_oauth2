@@ -1,81 +1,94 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import {
-  login as authLogin,
-  handleCallback as authHandleCallback,
-  refreshToken as authRefreshToken,
-  revokeToken as authRevokeToken,
-  getAccessToken,
-  getUserInfo,
-  isLoggedIn as checkLoggedIn,
-  clearTokens
-} from '../utils/auth.js'
+import { generatePKCE, generateRandomString } from '../utils/pkce'
+import { buildAuthorizeUrl, exchangeCodeForToken, refreshAccessToken, getUserInfo, buildLogoutUrl } from '../utils/auth'
 
 export const useAuthStore = defineStore('auth', () => {
-  // 状态
-  const accessToken = ref(getAccessToken())
-  const userInfo = ref(getUserInfo())
+  const accessToken = ref(localStorage.getItem('access_token'))
+  const refreshToken = ref(localStorage.getItem('refresh_token'))
+  const userInfo = ref(JSON.parse(localStorage.getItem('user_info') || 'null'))
 
-  // 计算属性
-  const isLoggedIn = computed(() => !!accessToken.value)
-  const username = computed(() => userInfo.value?.sub || '未知用户')
-  const email = computed(() => userInfo.value?.email || '')
+  const isAuthenticated = computed(() => !!accessToken.value)
 
-  /**
-   * 发起登录
-   */
   async function login() {
-    await authLogin()
+    const { codeVerifier, codeChallenge } = await generatePKCE()
+    const state = generateRandomString(32)
+
+    localStorage.setItem('pkce_code_verifier', codeVerifier)
+    localStorage.setItem('oauth_state', state)
+
+    window.location.href = buildAuthorizeUrl(codeChallenge, state)
   }
 
-  /**
-   * 处理回调
-   */
   async function handleCallback(code, state) {
-    const tokens = await authHandleCallback(code, state)
-    accessToken.value = tokens.access_token
-    userInfo.value = getUserInfo()
-    return tokens
+    const savedState = localStorage.getItem('oauth_state')
+    if (state !== savedState) {
+      throw new Error('State mismatch')
+    }
+
+    const codeVerifier = localStorage.getItem('pkce_code_verifier')
+    const tokenResponse = await exchangeCodeForToken(code, codeVerifier)
+
+    accessToken.value = tokenResponse.access_token
+    refreshToken.value = tokenResponse.refresh_token
+
+    localStorage.setItem('access_token', tokenResponse.access_token)
+    localStorage.setItem('refresh_token', tokenResponse.refresh_token)
+
+    // 清理临时数据
+    localStorage.removeItem('pkce_code_verifier')
+    localStorage.removeItem('oauth_state')
+
+    // 获取用户信息
+    await fetchUserInfo()
   }
 
-  /**
-   * 刷新 Token
-   */
-  async function refreshToken() {
-    const tokens = await authRefreshToken()
-    accessToken.value = tokens.access_token
-    userInfo.value = getUserInfo()
-    return tokens
+  async function fetchUserInfo() {
+    try {
+      const info = await getUserInfo(accessToken.value)
+      userInfo.value = info
+      localStorage.setItem('user_info', JSON.stringify(info))
+    } catch (e) {
+      console.error('Failed to fetch user info', e)
+    }
   }
 
-  /**
-   * 登出
-   */
-  async function logout() {
-    await authRevokeToken()
+  async function refresh() {
+    if (!refreshToken.value) {
+      logout()
+      return
+    }
+    try {
+      const tokenResponse = await refreshAccessToken(refreshToken.value)
+      accessToken.value = tokenResponse.access_token
+      refreshToken.value = tokenResponse.refresh_token
+      localStorage.setItem('access_token', tokenResponse.access_token)
+      localStorage.setItem('refresh_token', tokenResponse.refresh_token)
+    } catch (e) {
+      console.error('Token refresh failed', e)
+      logout()
+    }
+  }
+
+  function logout() {
     accessToken.value = null
+    refreshToken.value = null
     userInfo.value = null
-  }
-
-  /**
-   * 强制清除 (Token 失效时)
-   */
-  function forceLogout() {
-    clearTokens()
-    accessToken.value = null
-    userInfo.value = null
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user_info')
+    window.location.href = buildLogoutUrl()
   }
 
   return {
     accessToken,
+    refreshToken,
     userInfo,
-    isLoggedIn,
-    username,
-    email,
+    isAuthenticated,
     login,
     handleCallback,
-    refreshToken,
-    logout,
-    forceLogout
+    fetchUserInfo,
+    refresh,
+    logout
   }
 })

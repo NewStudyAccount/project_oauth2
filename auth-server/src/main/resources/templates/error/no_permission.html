@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>无权限 - 统一认证中心</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>无权访问</h1>
+        </div>
+        <div class="alert alert-error">
+            <p th:text="${message != null ? message : '您没有权限访问该系统，请联系管理员开通权限'}">无权限提示</p>
+        </div>
+        <div class="auth-footer">
+            <a th:href="@{/login}">返回登录页</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

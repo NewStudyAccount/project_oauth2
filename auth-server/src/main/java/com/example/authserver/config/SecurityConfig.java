@@ -1,5 +1,7 @@
 package com.example.authserver.config;
 
+import com.example.authserver.service.CustomUserDetailsService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -11,29 +13,35 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     /**
-     * 默认安全过滤链 (登录页面、静态资源等)
+     * 默认安全链：页面 + API
      */
     @Bean
     @Order(2)
-    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain defaultFilterChain(HttpSecurity http) throws Exception {
         http
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/login", "/css/**", "/js/**", "/images/**", "/error").permitAll()
-                        .requestMatchers("/userinfo").authenticated()
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/login", "/register", "/send-code", "/error", "/css/**", "/js/**", "/images/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .formLogin(formLogin -> formLogin
+                .formLogin(form -> form
                         .loginPage("/login")
-                        .permitAll()
+                        .loginProcessingUrl("/login")
+                        .defaultSuccessUrl("/", true)
+                        .failureUrl("/login?error")
                 )
                 .logout(logout -> logout
-                        .logoutSuccessUrl("/")
-                        .permitAll()
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
                 )
-                .csrf(csrf -> csrf.disable()); // 学习阶段禁用，生产环境应启用
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/api/**", "/oauth2/**")
+                );
 
         return http.build();
     }

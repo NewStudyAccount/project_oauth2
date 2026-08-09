@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { isLoggedIn } from '../utils/auth.js'
+import { useAuthStore } from '../stores/auth'
 
 const routes = [
   {
@@ -17,6 +17,11 @@ const routes = [
     name: 'Profile',
     component: () => import('../views/Profile.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/no-permission',
+    name: 'NoPermission',
+    component: () => import('../views/NoPermission.vue')
   }
 ]
 
@@ -25,11 +30,10 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫
 router.beforeEach((to, from, next) => {
-  if (to.meta.requiresAuth && !isLoggedIn()) {
-    // 未登录，跳转首页 (首页有登录按钮)
-    next({ name: 'Home' })
+  const authStore = useAuthStore()
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    authStore.login()
   } else {
     next()
   }

@@ -1,13 +1,14 @@
 <template>
-  <div class="callback">
-    <div class="card">
-      <div v-if="loading" class="loading">
-        <p>正在处理登录...</p>
+  <div class="container">
+    <div class="card" style="text-align: center;">
+      <div v-if="loading">
+        <h2>正在登录...</h2>
+        <p style="color: #666; margin-top: 16px;">请稍候，正在处理授权回调</p>
       </div>
-      <div v-else-if="error" class="error">
-        <h2>❌ 登录失败</h2>
-        <p>{{ error }}</p>
-        <router-link to="/" class="btn">返回首页</router-link>
+      <div v-else-if="error">
+        <h2 style="color: #dc2626;">登录失败</h2>
+        <p style="color: #666; margin-top: 16px;">{{ error }}</p>
+        <router-link to="/" class="btn btn-primary" style="margin-top: 24px;">返回首页</router-link>
       </div>
     </div>
   </div>
@@ -16,7 +17,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/auth.js'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -25,55 +26,28 @@ const loading = ref(true)
 const error = ref(null)
 
 onMounted(async () => {
-  try {
-    const code = route.query.code
-    const state = route.query.state
+  const code = route.query.code
+  const state = route.query.state
+  const errorParam = route.query.error
 
-    if (!code) {
-      throw new Error('缺少授权码参数')
-    }
-
-    await authStore.handleCallback(code, state)
-    // 登录成功，跳转首页
-    router.push('/')
-  } catch (e) {
-    error.value = e.message || '登录处理失败'
-  } finally {
+  if (errorParam) {
     loading.value = false
+    error.value = route.query.error_description || '授权被拒绝'
+    return
+  }
+
+  if (!code) {
+    loading.value = false
+    error.value = '缺少授权码'
+    return
+  }
+
+  try {
+    await authStore.handleCallback(code, state)
+    router.push('/profile')
+  } catch (e) {
+    loading.value = false
+    error.value = e.message || '登录处理失败'
   }
 })
 </script>
-
-<style scoped>
-.callback {
-  max-width: 400px;
-  margin: 100px auto;
-  padding: 0 20px;
-}
-.card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  padding: 40px;
-  text-align: center;
-}
-.loading p {
-  color: #666;
-}
-.error h2 {
-  color: #c33;
-  margin-bottom: 12px;
-}
-.error p {
-  color: #666;
-  margin-bottom: 20px;
-}
-.btn {
-  display: inline-block;
-  padding: 12px 24px;
-  background: #667eea;
-  color: white;
-  border-radius: 8px;
-  text-decoration: none;
-}
-</style>

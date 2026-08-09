@@ -1,5 +1,6 @@
 package com.example.authserver.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.authserver.entity.SysUser;
 import com.example.authserver.repository.SysUserMapper;
 import lombok.RequiredArgsConstructor;
@@ -10,8 +11,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Collections;
 
 @Service
 @RequiredArgsConstructor
@@ -21,29 +21,39 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        SysUser sysUser = sysUserMapper.selectByUsername(username);
+        SysUser sysUser = sysUserMapper.selectOne(
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getUsername, username)
+                        .eq(SysUser::getStatus, 1)
+        );
+
         if (sysUser == null) {
             throw new UsernameNotFoundException("用户不存在: " + username);
         }
 
-        if (!sysUser.getEnabled()) {
-            throw new UsernameNotFoundException("用户已被禁用: " + username);
-        }
-
-        // 查询用户角色
-        List<String> roleNames = sysUserMapper.selectRoleNamesByUserId(sysUser.getId());
-        List<SimpleGrantedAuthority> authorities = roleNames.stream()
-                .map(SimpleGrantedAuthority::new)
-                .collect(Collectors.toList());
-
         return new User(
                 sysUser.getUsername(),
                 sysUser.getPassword(),
-                true,   // enabled
-                true,   // accountNonExpired
-                true,   // credentialsNonExpired
-                true,   // accountNonLocked
-                authorities
+                sysUser.getStatus() == 1,
+                true, true, true,
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
         );
+    }
+
+    /**
+     * 根据用户名获取用户信息（含详细信息）
+     */
+    public SysUser getUserByUsername(String username) {
+        return sysUserMapper.selectOne(
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getUsername, username)
+        );
+    }
+
+    /**
+     * 根据用户ID获取用户信息
+     */
+    public SysUser getUserById(Long userId) {
+        return sysUserMapper.selectById(userId);
     }
 }

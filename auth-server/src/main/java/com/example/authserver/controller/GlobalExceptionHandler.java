@@ -1,43 +1,36 @@
 package com.example.authserver.controller;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.ModelAndView;
 
-import java.util.HashMap;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<Map<String, String>> handleAuthException(AuthenticationException e) {
-        log.warn("认证失败: {}", e.getMessage());
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "unauthorized");
-        error.put("error_description", "认证失败: " + e.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    @ExceptionHandler(OAuth2AuthenticationException.class)
+    public ModelAndView handleOAuth2Error(OAuth2AuthenticationException e) {
+        log.error("OAuth2认证异常", e);
+        String message = e.getError() != null ? e.getError().getDescription() : "认证失败";
+        return new ModelAndView("redirect:/error?message=" + URLEncoder.encode(message, StandardCharsets.UTF_8));
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException e) {
-        log.warn("请求参数错误: {}", e.getMessage());
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "invalid_request");
-        error.put("error_description", e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    @ExceptionHandler(AccessDeniedException.class)
+    public ModelAndView handleAccessDenied() {
+        return new ModelAndView("error/no_permission");
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleException(Exception e) {
         log.error("系统异常", e);
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "server_error");
-        error.put("error_description", "系统内部错误");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        return ResponseEntity.status(500).body(Map.of("error", "系统内部错误"));
     }
 }

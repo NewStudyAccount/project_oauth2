@@ -1,41 +1,39 @@
 /**
- * OAuth2 PKCE 工具函数
- * 参考: https://datatracker.ietf.org/doc/html/rfc7636
+ * PKCE 工具 - 用于公开客户端的 OAuth2 授权码流程
  */
 
 /**
- * 生成随机字符串 (code_verifier)
- * @param {number} length - 长度 (43-128)
- * @returns {string}
+ * 生成随机字符串
  */
-export function generateCodeVerifier(length = 128) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'
-  const array = new Uint8Array(length)
-  crypto.getRandomValues(array)
-  return Array.from(array, byte => chars[byte % chars.length]).join('')
+export function generateRandomString(length = 128) {
+  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'
+  let result = ''
+  const values = crypto.getRandomValues(new Uint8Array(length))
+  for (let i = 0; i < length; i++) {
+    result += charset[values[i] % charset.length]
+  }
+  return result
 }
 
 /**
- * 计算 SHA-256 哈希 (code_challenge)
- * @param {string} verifier - code_verifier
- * @returns {Promise<string>} - Base64URL 编码的哈希值
+ * 计算 SHA-256 哈希
  */
-export async function generateCodeChallenge(verifier) {
+async function sha256(plain) {
   const encoder = new TextEncoder()
-  const data = encoder.encode(verifier)
-  const digest = await crypto.subtle.digest('SHA-256', data)
-  return base64UrlEncode(digest)
+  const data = encoder.encode(plain)
+  const hash = await crypto.subtle.digest('SHA-256', data)
+  return hash
 }
 
 /**
- * Base64URL 编码
- * @param {ArrayBuffer} buffer
- * @returns {string}
+ * Base64 URL 编码
  */
-function base64UrlEncode(buffer) {
-  const bytes = new Uint8Array(buffer)
+function base64UrlEncode(arrayBuffer) {
+  const bytes = new Uint8Array(arrayBuffer)
   let binary = ''
-  bytes.forEach(byte => binary += String.fromCharCode(byte))
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
   return btoa(binary)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
@@ -43,11 +41,16 @@ function base64UrlEncode(buffer) {
 }
 
 /**
- * 生成随机 state 参数
- * @returns {string}
+ * 生成 PKCE code_verifier 和 code_challenge
  */
-export function generateState() {
-  const array = new Uint8Array(32)
-  crypto.getRandomValues(array)
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+export async function generatePKCE() {
+  const codeVerifier = generateRandomString(128)
+  const hashed = await sha256(codeVerifier)
+  const codeChallenge = base64UrlEncode(hashed)
+
+  return {
+    codeVerifier,
+    codeChallenge,
+    codeChallengeMethod: 'S256'
+  }
 }

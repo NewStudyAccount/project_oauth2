@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>授权确认 - 统一认证中心</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>授权确认</h1>
+            <p th:text="${clientName} + ' 想访问您的账号信息'">应用名称</p>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <p style="font-size: 14px; color: #666; margin-bottom: 12px;">该应用将获得以下权限：</p>
+            <div th:each="scope : ${scopes}" class="consent-scope" th:text="${scope}">权限</div>
+        </div>
+
+        <form th:action="@{/oauth2/authorize}" method="post">
+            <!-- 保留所有原始参数 -->
+            <input type="hidden" name="client_id" th:value="${client_id}">
+            <input type="hidden" name="redirect_uri" th:value="${redirect_uri}">
+            <input type="hidden" name="state" th:value="${state}">
+            <input type="hidden" name="scope" th:value="${scope}">
+            <input type="hidden" name="response_type" th:value="${response_type}">
+
+            <div class="btn-group">
+                <button type="submit" name="user_approval" value="true" class="btn btn-primary" style="flex:1;">同意授权</button>
+                <button type="submit" name="user_approval" value="false" class="btn btn-danger" style="flex:1;">拒绝</button>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>

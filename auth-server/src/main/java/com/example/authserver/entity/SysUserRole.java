@@ -1,13 +1,18 @@
 package com.example.authserver.entity;
 
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
-@TableName("sys_user_role")
-public class SysUserRole {
+@TableName("sys_role")
+public class SysRole {
 
-    private Long userId;
+    @TableId(type = IdType.AUTO)
+    private Long id;
 
-    private Long roleId;
+    private String name;
+
+    private String code;
 }

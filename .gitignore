@@ -8,3 +8,31 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+/**/node_modules/
+
+/**/target/
+
+# Maven
+*.jar
+*.war
+*.ear
+*.class
+
+# IDE
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Vue
+app-vue/dist/
+app-vue/node_modules/
+app-vue/.env.local
+app-vue/.env.*.local
