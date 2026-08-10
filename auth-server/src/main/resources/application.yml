@@ -11,17 +11,76 @@ spring:
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+#  sql:
+#    init:
+#      mode: always
+#      schema-locations: classpath:db/schema.sql
+#      data-locations: classpath:db/data.sql
+
   data:
     redis:
       host: 192.168.99.100
       port: 6379
-      password:
       database: 12
 
   thymeleaf:
     prefix: classpath:/templates/
     suffix: .html
     cache: false
+
+  security:
+    oauth2:
+      authorizationserver:
+        client:
+          # Vue SPA - 公开客户端 (PKCE)
+          vue-app:
+            registration:
+              client-id: vue-app
+              client-authentication-methods:
+                - none
+              authorization-grant-types:
+                - authorization_code
+                - refresh_token
+              redirect-uris:
+                - http://client.a.local:5173/callback
+              scopes:
+                - openid
+                - profile
+                - email
+            require-authorization-consent: false
+          # Spring Boot - 机密客户端
+          springboot-app:
+            registration:
+              client-id: springboot-app
+              client-secret: "{noop}Admin@123"
+              client-authentication-methods:
+                - client_secret_basic
+                - client_secret_post
+              authorization-grant-types:
+                - authorization_code
+                - refresh_token
+              redirect-uris:
+                - http://client.a.local:8082/login/oauth2/code/auth-server
+              scopes:
+                - openid
+                - profile
+                - email
+            require-authorization-consent: false
+          # 第三方应用 - 需要用户确认
+          third-party-app:
+            registration:
+              client-id: third-party-app
+              client-secret: "{noop}ThirdParty@123"
+              client-authentication-methods:
+                - client_secret_basic
+              authorization-grant-types:
+                - authorization_code
+              redirect-uris:
+                - http://localhost:8080/callback
+              scopes:
+                - openid
+                - profile
+            require-authorization-consent: true
 
   mail:
     host: smtp.qq.com

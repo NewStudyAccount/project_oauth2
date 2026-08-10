@@ -1,32 +1,22 @@
 package com.example.authserver.config;
 
-import com.example.authserver.service.CustomOAuth2AuthorizationConsentService;
-import com.example.authserver.service.CustomOAuth2AuthorizationService;
-import com.example.authserver.service.CustomRegisteredClientRepository;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.core.AuthorizationGrantType;
-import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
-import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
-import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
@@ -40,12 +30,13 @@ import java.time.Duration;
 import java.util.UUID;
 
 @Configuration
-@RequiredArgsConstructor
 public class AuthorizationServerConfig {
 
-    /**
-     * OAuth2 Authorization Server 安全过滤链
-     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
+
     @Bean
     @Order(1)
     public SecurityFilterChain authServerFilterChain(HttpSecurity http) throws Exception {
@@ -68,9 +59,6 @@ public class AuthorizationServerConfig {
         return http.build();
     }
 
-    /**
-     * RSA 密钥对（生产环境应从配置或密钥库加载）
-     */
     @Bean
     public KeyPair keyPair() {
         try {
@@ -82,9 +70,6 @@ public class AuthorizationServerConfig {
         }
     }
 
-    /**
-     * JWK Source（公钥发布）
-     */
     @Bean
     public JWKSource<SecurityContext> jwkSource(KeyPair keyPair) {
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
@@ -97,17 +82,11 @@ public class AuthorizationServerConfig {
         return new ImmutableJWKSet<>(jwkSet);
     }
 
-    /**
-     * JWT 解码器
-     */
     @Bean
     public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource) {
         return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
     }
 
-    /**
-     * Authorization Server 设置
-     */
     @Bean
     public AuthorizationServerSettings authorizationServerSettings() {
         return AuthorizationServerSettings.builder()
@@ -115,9 +94,6 @@ public class AuthorizationServerConfig {
                 .build();
     }
 
-    /**
-     * Token 设置
-     */
     @Bean
     public TokenSettings tokenSettings() {
         return TokenSettings.builder()

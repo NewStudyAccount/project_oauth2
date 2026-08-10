@@ -39,9 +39,15 @@ public class CustomUserDetailsService implements UserDetailsService {
             authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
         }
 
+        String password = sysUser.getPassword();
+        // 确保密码有编码器前缀，兼容 DelegatingPasswordEncoder
+        if (password != null && !password.startsWith("{")) {
+            password = "{bcrypt}" + password;
+        }
+
         return new User(
                 sysUser.getUsername(),
-                sysUser.getPassword(),
+                password,
                 sysUser.getStatus() == 1,
                 true, true, true,
                 authorities
