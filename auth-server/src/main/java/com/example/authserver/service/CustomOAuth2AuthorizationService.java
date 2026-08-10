@@ -8,7 +8,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
-import org.springframework.security.oauth2.core.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationCode;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
@@ -18,11 +17,12 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.security.Principal;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * 自定义 OAuth2AuthorizationService，使用 JDBC 存储
@@ -40,16 +40,16 @@ public class CustomOAuth2AuthorizationService implements OAuth2AuthorizationServ
     @Override
     public void save(OAuth2Authorization authorization) {
         String state = authorization.getAttribute("state");
-        String authorizationCodeValue = getTokenValue(authorization, OAuth2TokenType.AUTHORIZATION_CODE);
-        String accessTokenValue = getTokenValue(authorization, OAuth2TokenType.ACCESS_TOKEN);
-        String refreshTokenValue = getTokenValue(authorization, OAuth2TokenType.REFRESH_TOKEN);
-        String oidcIdTokenValue = getTokenValue(authorization, new OAuth2TokenType("id_token"));
+        String authorizationCodeValue = getTokenValue(authorization, "authorization_code");
+        String accessTokenValue = getTokenValue(authorization, "access_token");
+        String refreshTokenValue = getTokenValue(authorization, "refresh_token");
+        String oidcIdTokenValue = getTokenValue(authorization, "id_token");
 
         String attributes = writeMap(authorization.getAttributes());
-        String authorizationCodeMetadata = writeMap(getTokenMetadata(authorization, OAuth2TokenType.AUTHORIZATION_CODE));
-        String accessTokenMetadata = writeMap(getTokenMetadata(authorization, OAuth2TokenType.ACCESS_TOKEN));
-        String refreshTokenMetadata = writeMap(getTokenMetadata(authorization, OAuth2TokenType.REFRESH_TOKEN));
-        String oidcIdTokenMetadata = writeMap(getTokenMetadata(authorization, new OAuth2TokenType("id_token")));
+        String authorizationCodeMetadata = writeMap(getTokenMetadata(authorization, "authorization_code"));
+        String accessTokenMetadata = writeMap(getTokenMetadata(authorization, "access_token"));
+        String refreshTokenMetadata = writeMap(getTokenMetadata(authorization, "refresh_token"));
+        String oidcIdTokenMetadata = writeMap(getTokenMetadata(authorization, "id_token"));
 
         int count = jdbcTemplate.update(
                 "UPDATE oauth2_authorization SET " +
@@ -109,14 +109,17 @@ public class CustomOAuth2AuthorizationService implements OAuth2AuthorizationServ
 
     private OAuth2Authorization findBy(String column, String value) {
         try {
-            ResultSet rs = jdbcTemplate.query(
+            return jdbcTemplate.query(
                     "SELECT * FROM oauth2_authorization WHERE " + column + " = ?",
                     (ps) -> ps.setString(1, value),
-                    (resultSet) -> resultSet
+                    (rs) -> {
+                        try {
+                            return rs.next() ? mapRow(rs) : null;
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
             );
-            if (rs != null && rs.next()) {
-                return mapRow(rs);
-            }
         } catch (Exception e) {
             log.error("Error loading authorization by {}: {}", column, value, e);
         }
@@ -133,9 +136,13 @@ public class CustomOAuth2AuthorizationService implements OAuth2AuthorizationServ
         String state = rs.getString("state");
 
         String authorizationCodeValue = rs.getString("authorization_code_value");
+        String authorizationCodeMetadata = rs.getString("authorization_code_metadata");
         String accessTokenValue = rs.getString("access_token_value");
+        String accessTokenMetadata = rs.getString("access_token_metadata");
         String refreshTokenValue = rs.getString("refresh_token_value");
+        String refreshTokenMetadata = rs.getString("refresh_token_metadata");
         String oidcIdTokenValue = rs.getString("oidc_id_token_value");
+        String oidcIdTokenMetadata = rs.getString("oidc_id_token_metadata");
 
         RegisteredClient registeredClient = registeredClientRepository.findById(registeredClientId);
         if (registeredClient == null) {
@@ -154,31 +161,31 @@ public class CustomOAuth2AuthorizationService implements OAuth2AuthorizationServ
         }
 
         if (authorizationCodeValue != null) {
-            builder.token(authorizationCodeValue, meta -> {
-                String metadata = rs.getString("authorization_code_metadata");
-                if (metadata != null) meta.putAll(readMap(metadata));
-            });
+            builder.token(new OAuth2AuthorizationCode(authorizationCodeValue, Instant.now(), Instant.now().plusSeconds(300)),
+                    meta -> {
+                        if (authorizationCodeMetadata != null) meta.putAll(readMap(authorizationCodeMetadata));
+                    });
         }
 
         if (accessTokenValue != null) {
-            builder.token(accessTokenValue, meta -> {
-                String metadata = rs.getString("access_token_metadata");
-                if (metadata != null) meta.putAll(readMap(metadata));
-            });
+            builder.token(new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, accessTokenValue, Instant.now(), Instant.now().plusSeconds(1800)),
+                    meta -> {
+                        if (accessTokenMetadata != null) meta.putAll(readMap(accessTokenMetadata));
+                    });
         }
 
         if (refreshTokenValue != null) {
-            builder.token(refreshTokenValue, meta -> {
-                String metadata = rs.getString("refresh_token_metadata");
-                if (metadata != null) meta.putAll(readMap(metadata));
-            });
+            builder.token(new OAuth2RefreshToken(refreshTokenValue, Instant.now(), Instant.now().plusSeconds(604800)),
+                    meta -> {
+                        if (refreshTokenMetadata != null) meta.putAll(readMap(refreshTokenMetadata));
+                    });
         }
 
         if (oidcIdTokenValue != null) {
-            builder.token(oidcIdTokenValue, meta -> {
-                String metadata = rs.getString("oidc_id_token_metadata");
-                if (metadata != null) meta.putAll(readMap(metadata));
-            });
+            builder.token(new org.springframework.security.oauth2.core.oidc.OidcIdToken(oidcIdTokenValue, Instant.now(), Instant.now().plusSeconds(1800), Map.of()),
+                    meta -> {
+                        if (oidcIdTokenMetadata != null) meta.putAll(readMap(oidcIdTokenMetadata));
+                    });
         }
 
         return builder.build();
@@ -197,13 +204,13 @@ public class CustomOAuth2AuthorizationService implements OAuth2AuthorizationServ
         };
     }
 
-    private String getTokenValue(OAuth2Authorization authorization, OAuth2TokenType tokenType) {
+    private String getTokenValue(OAuth2Authorization authorization, String tokenType) {
         return Optional.ofNullable(authorization.getToken(tokenType))
                 .map(token -> token.getToken().getTokenValue())
                 .orElse(null);
     }
 
-    private Map<String, Object> getTokenMetadata(OAuth2Authorization authorization, OAuth2TokenType tokenType) {
+    private Map<String, Object> getTokenMetadata(OAuth2Authorization authorization, String tokenType) {
         return Optional.ofNullable(authorization.getToken(tokenType))
                 .map(OAuth2Authorization.Token::getMetadata)
                 .orElse(null);

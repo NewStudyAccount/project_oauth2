@@ -45,7 +45,8 @@ public class OAuth2TokenCustomizerConfig {
             }
 
             // 设置 ID Token 的 subject
-            if (OidcParameterNames.ID_TOKEN.equals(context.getTokenType().getValue())) {
+            if (OidcParameterNames.ID_TOKEN.equals(context.getTokenType().getValue())
+                    && context.getPrincipal() != null) {
                 context.getClaims().claim(IdTokenClaimNames.SUB, context.getPrincipal().getName());
             }
         };

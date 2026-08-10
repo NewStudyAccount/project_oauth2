@@ -2,6 +2,7 @@ package com.example.authserver.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -13,10 +14,13 @@ public class MailService {
 
     private final JavaMailSender mailSender;
 
+    @Value("${spring.mail.username}")
+    private String mailFrom;
+
     public void sendVerificationCode(String to, String code) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("noreply@example.com");
+            message.setFrom(mailFrom);
             message.setTo(to);
             message.setSubject("统一认证中心 - 验证码");
             message.setText("您的验证码是: " + code + "\n\n验证码有效期为5分钟，请尽快使用。\n\n如非本人操作，请忽略此邮件。");

@@ -43,20 +43,26 @@ public class RegisterController {
             return "redirect:/login";
         } catch (Exception e) {
             auditLogService.logRegister(username, "FAILED");
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            String message = e.getMessage();
+            if (message != null && message.length() > 50) {
+                message = "注册失败，请检查输入信息";
+            }
+            redirectAttributes.addFlashAttribute("error", message);
             redirectAttributes.addAttribute("client_id", client_id);
             return "redirect:/register";
         }
     }
 
     @PostMapping("/send-code")
-    public String sendCode(@RequestParam String email, HttpServletRequest request) {
+    public String sendCode(@RequestParam String email, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         String ip = request.getRemoteAddr();
         try {
             registerService.sendVerificationCode(email, ip);
-            return "redirect:/register?codeSent=true";
+            redirectAttributes.addFlashAttribute("codeSent", true);
+            return "redirect:/register";
         } catch (Exception e) {
-            return "redirect:/register?error=" + e.getMessage();
+            redirectAttributes.addFlashAttribute("error", "验证码发送失败，请稍后再试");
+            return "redirect:/register";
         }
     }
 }

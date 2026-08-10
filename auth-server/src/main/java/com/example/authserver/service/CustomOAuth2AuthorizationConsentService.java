@@ -79,7 +79,13 @@ public class CustomOAuth2AuthorizationConsentService implements OAuth2Authorizat
                         ps.setString(1, registeredClientId);
                         ps.setString(2, principalName);
                     },
-                    (rs) -> rs.next() ? mapRow(rs) : null
+                    (rs) -> {
+                        try {
+                            return rs.next() ? mapRow(rs) : null;
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
             );
         } catch (Exception e) {
             log.error("Error loading authorization consent", e);

@@ -127,29 +127,41 @@ public class WebhookService {
 
         for (WebhookLog retryLog : retryLogs) {
             WebhookSubscriber subscriber = subscriberMapper.selectById(retryLog.getSubscriberId());
-            if (subscriber != null && subscriber.getStatus() == 1) {
-                try {
-                    // 重新发送
-                    HttpClient client = HttpClient.newHttpClient();
-                    HttpRequest request = HttpRequest.newBuilder()
-                            .uri(URI.create(subscriber.getCallbackUrl()))
-                            .header("Content-Type", "application/json")
-                            .POST(HttpRequest.BodyPublishers.ofString(retryLog.getPayload()))
-                            .build();
+            if (subscriber == null || subscriber.getStatus() != 1) {
+                retryLog.setStatus("FAILED");
+                logMapper.updateById(retryLog);
+                continue;
+            }
 
-                    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            try {
+                String timestamp = String.valueOf(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC));
+                String signature = sign(timestamp + "." + retryLog.getPayload(), subscriber.getSecret());
 
-                    if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                        retryLog.setStatus("SUCCESS");
-                        logMapper.updateById(retryLog);
-                    } else {
-                        retryLog.setStatus("FAILED");
-                        logMapper.updateById(retryLog);
-                    }
-                } catch (Exception e) {
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(subscriber.getCallbackUrl()))
+                        .header("Content-Type", "application/json")
+                        .header("X-Webhook-Signature", "sha256=" + signature)
+                        .header("X-Webhook-Event", retryLog.getEventType())
+                        .header("X-Webhook-Timestamp", timestamp)
+                        .POST(HttpRequest.BodyPublishers.ofString(retryLog.getPayload()))
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                    retryLog.setStatus("SUCCESS");
+                    logMapper.updateById(retryLog);
+                } else {
+                    scheduleRetry(subscriber, retryLog.getEventType(), Map.of(), retryLog.getRetryCount() + 1);
                     retryLog.setStatus("FAILED");
                     logMapper.updateById(retryLog);
                 }
+            } catch (Exception e) {
+                log.error("Webhook 重试失败: {}", subscriber.getCallbackUrl(), e);
+                scheduleRetry(subscriber, retryLog.getEventType(), Map.of(), retryLog.getRetryCount() + 1);
+                retryLog.setStatus("FAILED");
+                logMapper.updateById(retryLog);
             }
         }
     }

@@ -101,8 +101,8 @@ public class AuthorizationServerConfig {
      * JWT 解码器
      */
     @Bean
-    public JwtDecoder jwtDecoder(KeyPair keyPair) {
-        return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource(keyPair));
+    public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource) {
+        return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
     }
 
     /**

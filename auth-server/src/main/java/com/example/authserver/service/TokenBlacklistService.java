@@ -6,11 +6,15 @@ import com.example.authserver.repository.OAuth2TokenBlacklistMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.sql.ResultSet;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -20,6 +24,7 @@ public class TokenBlacklistService {
 
     private final OAuth2TokenBlacklistMapper blacklistMapper;
     private final StringRedisTemplate redisTemplate;
+    private final JdbcTemplate jdbcTemplate;
 
     private static final String BLACKLIST_KEY_PREFIX = "oauth2:blacklist:";
 
@@ -88,9 +93,39 @@ public class TokenBlacklistService {
      * 撤销用户的所有 Token
      */
     public void revokeAllUserTokens(Long userId, String reason) {
-        // 这里需要找到该用户的所有有效 Token 并加入黑名单
-        // 实际实现中需要查询 oauth2_authorization 表
-        log.info("撤销用户 {} 的所有 Token，原因: {}", userId, reason);
+        List<String> tokenValues = jdbcTemplate.queryForList(
+                "SELECT access_token_value FROM oauth2_authorization WHERE principal_name = " +
+                        "(SELECT username FROM sys_user WHERE id = ?) AND access_token_value IS NOT NULL",
+                String.class, userId
+        );
+
+        for (String tokenValue : tokenValues) {
+            String jti = UUID.randomUUID().toString();
+            LocalDateTime expiresAt = LocalDateTime.now().plusDays(1);
+            try {
+                OAuth2TokenBlacklist blacklist = new OAuth2TokenBlacklist();
+                blacklist.setJti(jti);
+                blacklist.setTokenValue(tokenValue);
+                blacklist.setUserId(userId);
+                blacklist.setReason(reason);
+                blacklist.setExpiresAt(expiresAt);
+                blacklistMapper.insert(blacklist);
+
+                long ttl = Duration.between(LocalDateTime.now(), expiresAt).getSeconds();
+                if (ttl > 0) {
+                    redisTemplate.opsForValue().set(BLACKLIST_KEY_PREFIX + jti, "1", ttl, TimeUnit.SECONDS);
+                }
+            } catch (Exception e) {
+                log.warn("撤销 Token 失败: {}", tokenValue, e);
+            }
+        }
+
+        jdbcTemplate.update(
+                "DELETE FROM oauth2_authorization WHERE principal_name = " +
+                        "(SELECT username FROM sys_user WHERE id = ?)", userId
+        );
+
+        log.info("撤销用户 {} 的所有 Token，数量: {}，原因: {}", userId, tokenValues.size(), reason);
     }
 
     /**

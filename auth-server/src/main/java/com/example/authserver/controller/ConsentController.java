@@ -2,20 +2,21 @@ package com.example.authserver.controller;
 
 import com.example.authserver.entity.OAuth2Client;
 import com.example.authserver.entity.SysUser;
-import com.example.authserver.entity.UserClientConsent;
 import com.example.authserver.repository.OAuth2ClientMapper;
-import com.example.authserver.repository.UserClientConsentMapper;
 import com.example.authserver.service.AccessControlService;
+import com.example.authserver.service.CustomOAuth2AuthorizationConsentService;
 import com.example.authserver.service.CustomUserDetailsService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsent;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
@@ -25,7 +26,7 @@ import java.util.List;
 public class ConsentController {
 
     private final OAuth2ClientMapper oauth2ClientMapper;
-    private final UserClientConsentMapper consentMapper;
+    private final CustomOAuth2AuthorizationConsentService consentService;
     private final AccessControlService accessControlService;
     private final CustomUserDetailsService userDetailsService;
 
@@ -56,20 +57,16 @@ public class ConsentController {
             return "error/no_permission";
         }
 
-        // 检查是否已经授权过
+        // 检查是否已经授权过 (使用 Spring Authorization Server 的 consent 表)
         if (user != null) {
-            UserClientConsent existing = consentMapper.selectOne(
-                    new LambdaQueryWrapper<UserClientConsent>()
-                            .eq(UserClientConsent::getUserId, user.getId())
-                            .eq(UserClientConsent::getClientId, client_id)
-            );
-            if (existing != null) {
+            OAuth2AuthorizationConsent existingConsent = consentService.findById(client_id, principal.getName());
+            if (existingConsent != null) {
                 // 已授权，直接跳过
-                return "redirect:/oauth2/authorize?client_id=" + client_id +
-                        "&redirect_uri=" + redirect_uri +
-                        "&state=" + state +
-                        "&scope=" + scope +
-                        "&response_type=" + response_type;
+                return "redirect:/oauth2/authorize?client_id=" + URLEncoder.encode(client_id, StandardCharsets.UTF_8) +
+                        "&redirect_uri=" + URLEncoder.encode(redirect_uri, StandardCharsets.UTF_8) +
+                        "&state=" + URLEncoder.encode(state != null ? state : "", StandardCharsets.UTF_8) +
+                        "&scope=" + URLEncoder.encode(scope, StandardCharsets.UTF_8) +
+                        "&response_type=" + URLEncoder.encode(response_type, StandardCharsets.UTF_8);
             }
         }
 
