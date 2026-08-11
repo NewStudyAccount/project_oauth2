@@ -5,15 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.5</version>
-        <relativePath/>
+        <groupId>com.example</groupId>
+        <artifactId>project-oauth2</artifactId>
+        <version>1.0.0</version>
     </parent>
 
-    <groupId>com.example</groupId>
     <artifactId>resource-api</artifactId>
-    <version>1.0.0</version>
     <name>resource-api</name>
     <description>OAuth2 Resource Server</description>
 
@@ -34,6 +31,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
+        <!-- Nacos 服务发现 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

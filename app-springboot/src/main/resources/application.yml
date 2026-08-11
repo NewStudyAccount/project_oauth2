@@ -5,25 +5,26 @@ spring:
   application:
     name: app-springboot
 
+  # Nacos 配置
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.99.100:8848
+        username: nacos
+        password: nacos
+
+  # OAuth2 Resource Server 配置 (验证 Gateway 转发的 Token)
   security:
     oauth2:
-      client:
-        registration:
-          auth-server:
-            client-id: springboot-app
-            client-secret: Admin@123
-            scope: openid,profile,email
-            authorization-grant-type: authorization_code
-            redirect-uri: "http://client.a.local:8082/login/oauth2/code/auth-server"
-            client-name: SpringBoot应用
-        provider:
-          auth-server:
-            issuer-uri: http://auth.local:9000
-            authorization-uri: http://auth.local:9000/oauth2/authorize
-            token-uri: http://auth.local:9000/oauth2/token
-            user-info-uri: http://auth.local:9000/userinfo
-            user-name-attribute: sub
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth.local:9000
 
   thymeleaf:
     prefix: classpath:/templates/
     suffix: .html
+
+logging:
+  level:
+    com.example.appspringboot: DEBUG
+    org.springframework.security: DEBUG

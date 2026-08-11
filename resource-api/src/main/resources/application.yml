@@ -5,6 +5,14 @@ spring:
   application:
     name: resource-api
 
+  # Nacos 配置
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.99.100:8848
+        username: nacos
+        password: nacos
+
   security:
     oauth2:
       resourceserver:

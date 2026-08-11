@@ -5,6 +5,14 @@ spring:
   application:
     name: auth-server
 
+  # Nacos 配置
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.99.100:8848
+        username: nacos
+        password: nacos
+
   datasource:
     url: jdbc:mysql://192.168.99.100:3306/oauth2_center?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true
     username: root
@@ -22,6 +30,7 @@ spring:
       host: 192.168.99.100
       port: 6379
       database: 12
+      password: 123456
 
   thymeleaf:
     prefix: classpath:/templates/
@@ -61,6 +70,24 @@ spring:
                 - refresh_token
               redirect-uris:
                 - http://client.a.local:8082/login/oauth2/code/auth-server
+              scopes:
+                - openid
+                - profile
+                - email
+            require-authorization-consent: false
+          # Gateway 网关客户端
+          gateway-app:
+            registration:
+              client-id: gateway-app
+              client-secret: "{noop}gateway-secret"
+              client-authentication-methods:
+                - client_secret_basic
+                - client_secret_post
+              authorization-grant-types:
+                - authorization_code
+                - refresh_token
+              redirect-uris:
+                - http://gateway.local:8080/login/oauth2/code/gateway-client
               scopes:
                 - openid
                 - profile

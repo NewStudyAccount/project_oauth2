@@ -5,15 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.5</version>
-        <relativePath/>
+        <groupId>com.example</groupId>
+        <artifactId>project-oauth2</artifactId>
+        <version>1.0.0</version>
     </parent>
 
-    <groupId>com.example</groupId>
     <artifactId>auth-server</artifactId>
-    <version>1.0.0</version>
     <name>auth-server</name>
     <description>OAuth2 SSO Authorization Server</description>
 
@@ -71,6 +68,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- Nacos 服务发现 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
         </dependency>
 
         <!-- Mail -->
