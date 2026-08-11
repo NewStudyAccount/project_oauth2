@@ -24,14 +24,6 @@ spring:
           filters:
             - StripPrefix=1
 
-        # app-springboot 路由
-        - id: app-springboot
-          uri: lb://app-springboot
-          predicates:
-            - Path=/app/**
-          filters:
-            - StripPrefix=1
-
         # resource-api 路由
         - id: resource-api
           uri: lb://resource-api

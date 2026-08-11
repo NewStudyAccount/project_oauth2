@@ -69,7 +69,7 @@ spring:
                 - authorization_code
                 - refresh_token
               redirect-uris:
-                - http://client.a.local:8082/login/oauth2/code/auth-server
+                - http://client.a.local:8082/login/oauth2/code/springboot-app
               scopes:
                 - openid
                 - profile

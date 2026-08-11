@@ -9,12 +9,12 @@ ON DUPLICATE KEY UPDATE username=username;
 
 -- 内部应用: Vue SPA (公开客户端, PKCE)
 INSERT INTO oauth2_client (client_id, client_secret, client_name, client_type, scopes, grant_types, redirect_uris, require_consent, access_token_ttl, refresh_token_ttl)
-VALUES ('vue-app', NULL, 'Vue前端应用', 'PUBLIC', 'openid,profile,email', 'authorization_code,refresh_token', 'http://localhost:5173/callback', 0, 1800, 604800)
+VALUES ('vue-app', NULL, 'Vue前端应用', 'PUBLIC', 'openid,profile,email', 'authorization_code,refresh_token', 'http://client.a.local:5173/callback', 0, 1800, 604800)
 ON DUPLICATE KEY UPDATE client_id=client_id;
 
 -- 内部应用: Spring Boot (机密客户端)
 INSERT INTO oauth2_client (client_id, client_secret, client_name, client_type, scopes, grant_types, redirect_uris, require_consent, access_token_ttl, refresh_token_ttl)
-VALUES ('springboot-app', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', 'SpringBoot应用', 'CONFIDENTIAL', 'openid,profile,email', 'authorization_code,refresh_token', 'http://localhost:8082/login/oauth2/code/auth-server', 0, 1800, 604800)
+VALUES ('springboot-app', '{noop}Admin@123', 'SpringBoot应用', 'CONFIDENTIAL', 'openid,profile,email', 'authorization_code,refresh_token', 'http://client.a.local:8082/login/oauth2/code/springboot-app', 0, 1800, 604800)
 ON DUPLICATE KEY UPDATE client_id=client_id;
 
 -- 第三方应用示例 (需要用户确认授权)

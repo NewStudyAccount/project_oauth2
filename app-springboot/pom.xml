@@ -12,7 +12,7 @@
 
     <artifactId>app-springboot</artifactId>
     <name>app-springboot</name>
-    <description>Spring Boot Resource Server Application</description>
+    <description>Spring Boot OAuth2 Client Application</description>
 
     <dependencies>
         <!-- Spring Web -->
@@ -27,10 +27,10 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
-        <!-- OAuth2 Resource Server (验证 Gateway 转发的 Token) -->
+        <!-- OAuth2 Client (直接与 auth-server 交互获取 Token) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
         </dependency>
 
         <!-- Thymeleaf -->
@@ -43,12 +43,6 @@
         <dependency>
             <groupId>org.thymeleaf.extras</groupId>
             <artifactId>thymeleaf-extras-springsecurity6</artifactId>
-        </dependency>
-
-        <!-- Nacos 服务发现 -->
-        <dependency>
-            <groupId>com.alibaba.cloud</groupId>
-            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
         </dependency>
 
         <!-- Lombok -->

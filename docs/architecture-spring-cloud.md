@@ -41,13 +41,12 @@
 │    │                                                               │    │
 │    │    服务列表:                                                   │    │
 │    │    ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │    │
-│    │    │ gateway     │  │ auth-server │  │app-springboot│         │    │
-│    │    │ :8080       │  │ :9000       │  │ :8082       │         │    │
+│    │    │ gateway     │  │ auth-server │  │ resource-api│         │    │
+│    │    │ :8080       │  │ :9000       │  │ :8083       │         │    │
 │    │    └─────────────┘  └─────────────┘  └─────────────┘         │    │
-│    │    ┌─────────────┐                                           │    │
-│    │    │ resource-api│                                           │    │
-│    │    │ :8083       │                                           │    │
-│    │    └─────────────┘                                           │    │
+│    │                                                               │    │
+│    │    注: app-springboot 和 app-vue 是外部系统示例                │    │
+│    │    不注册到 Nacos，直接与 auth-server 交互                    │    │
 │    └───────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -77,22 +76,24 @@
 │  └─────────────────────────────────────────────────────────────────┘    │
 │                                                                         │
 │  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │                    外部业务系统（通过 SSO 集成）                   │    │
+│  │                    外部系统示例（直接接入 SSO）                    │    │
 │  │                                                                  │    │
-│  │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────┐ │    │
-│  │  │  app-springboot │    │   其他系统 A    │    │  其他系统 B │ │    │
-│  │  │   port: 8082    │    │                 │    │             │ │    │
-│  │  │                 │    │                 │    │             │ │    │
-│  │  │  ┌───────────┐  │    │  ┌───────────┐  │    │ ┌─────────┐│ │    │
-│  │  │  │ Resource  │  │    │  │ Resource  │  │    │ │Resource ││ │    │
-│  │  │  │ Server    │  │    │  │ Server    │  │    │ │Server   ││ │    │
-│  │  │  └───────────┘  │    │  └───────────┘  │    │ └─────────┘│ │    │
-│  │  │                 │    │                 │    │             │ │    │
-│  │  │  ┌───────────┐  │    │  ┌───────────┐  │    │ ┌─────────┐│ │    │
-│  │  │  │ 独立业务  │  │    │  │ 独立业务  │  │    │ │独立业务 ││ │    │
-│  │  │  │ 逻辑      │  │    │  │ 逻辑      │  │    │ │逻辑     ││ │    │
-│  │  │  └───────────┘  │    │  └───────────┘  │    │ └─────────┘│ │    │
-│  │  └─────────────────┘    └─────────────────┘    └─────────────┘ │    │
+│  │  ┌─────────────────┐    ┌─────────────────┐                     │    │
+│  │  │  app-springboot │    │    app-vue       │                     │    │
+│  │  │   port: 8082    │    │    port: 5173    │                     │    │
+│  │  │                 │    │                  │                     │    │
+│  │  │  ┌───────────┐  │    │  ┌───────────┐  │                     │    │
+│  │  │  │ Resource  │  │    │  │ 前端 SPA  │  │                     │    │
+│  │  │  │ Server    │  │    │  │ (PKCE)    │  │                     │    │
+│  │  │  └───────────┘  │    │  └───────────┘  │                     │    │
+│  │  │                 │    │                  │                     │    │
+│  │  │  ┌───────────┐  │    │  ┌───────────┐  │                     │    │
+│  │  │  │ REST API  │  │    │  │ Token 管理│  │                     │    │
+│  │  │  │ 示例      │  │    │  │           │  │                     │    │
+│  │  │  └───────────┘  │    │  └───────────┘  │                     │    │
+│  │  └─────────────────┘    └─────────────────┘                     │    │
+│  │                                                                  │    │
+│  │  注: 外部系统直接与 auth-server 交互，不依赖 Gateway 和 Nacos    │    │
 │  └─────────────────────────────────────────────────────────────────┘    │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -114,11 +115,12 @@
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| Nacos Server | 8848 | 服务注册中心 |
-| Gateway | 8080 | API 网关（统一入口） |
-| auth-server | 9000 | OAuth2 授权服务 |
-| app-springboot | 8082 | 业务应用服务 |
-| resource-api | 8083 | 资源服务 |
+| Nacos Server | 8848 | 服务注册中心（SSO 平台核心） |
+| Gateway | 8080 | API 网关（SSO 平台核心） |
+| auth-server | 9000 | OAuth2 授权服务（SSO 平台核心） |
+| resource-api | 8083 | 资源服务（SSO 平台核心） |
+| app-springboot | 8082 | 外部 Web 应用示例（不注册到 Nacos） |
+| app-vue | 5173 | 外部前端系统示例（不注册到 Nacos） |
 | MySQL | 3306 | 数据库 |
 | Redis | 6379 | Session 存储 |
 
@@ -166,12 +168,6 @@ spring:
             - Path=/auth/**
           filters:
             - StripPrefix=1
-        - id: app-springboot
-          uri: lb://app-springboot
-          predicates:
-            - Path=/app/**
-          filters:
-            - StripPrefix=1
         - id: resource-api
           uri: lb://resource-api
           predicates:
@@ -194,25 +190,24 @@ spring:
 - Spring MVC (Servlet)
 - MyBatis-Plus + MySQL
 
-### 3.3 app-springboot (port: 8082) - 外部业务系统
+### 3.3 app-springboot (port: 8082) - 外部 Web 应用示例
 
-**性质**：独立的业务系统，通过 OAuth2 SSO 集成到统一认证平台
+**性质**：外部独立 Web 应用的示例，展示如何直接接入 SSO 平台
 
 **职责**：
-- 独立的业务应用，不属于 SSO 平台核心
-- 作为 Resource Server，验证 Gateway 转发的 Token
-- 提供独立的业务 API
-- 通过 SSO 实现单点登录
+- 作为独立的 OAuth2 Client，直接与 auth-server 交互获取 Token
+- 提供传统的 Web 页面（Thymeleaf）
+- 不依赖 SSO 平台的基础设施（Nacos、Gateway）
 
 **技术栈**：
-- Spring Security OAuth2 Resource Server
+- Spring Security OAuth2 Client
 - Spring MVC (Servlet)
-- JWT Token 验证
+- Thymeleaf 模板
 
 **集成方式**：
-- 注册到 Nacos，通过 Gateway 路由
-- 使用 SSO 平台颁发的 Token 进行认证
-- 不需要自己实现登录逻辑
+- 直接与 auth-server 交互，使用 OAuth2 Authorization Code Flow 获取 Token
+- 不注册到 Nacos，不通过 Gateway 路由
+- 用户通过浏览器访问，完成登录后显示页面
 
 ### 3.4 resource-api (port: 8083)
 
@@ -317,7 +312,7 @@ spring:
 
 ### 5.1 Nacos 服务注册
 
-所有服务启动时自动注册到 Nacos：
+SSO 平台核心服务启动时自动注册到 Nacos：
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -325,26 +320,23 @@ spring:
 │                        port: 8848                           │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │  服务列表                                            │    │
+│  │  服务列表（SSO 平台核心）                            │    │
 │  │                                                     │    │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │    │
-│  │  │ gateway     │  │ auth-server │  │app-springboot│ │    │
+│  │  │ gateway     │  │ auth-server │  │ resource-api│ │    │
 │  │  │ 127.0.0.1   │  │ 127.0.0.1   │  │ 127.0.0.1   │ │    │
-│  │  │ :8080       │  │ :9000       │  │ :8082       │ │    │
+│  │  │ :8080       │  │ :9000       │  │ :8083       │ │    │
 │  │  └─────────────┘  └─────────────┘  └─────────────┘ │    │
-│  │  ┌─────────────┐                                   │    │
-│  │  │ resource-api│                                   │    │
-│  │  │ 127.0.0.1   │                                   │    │
-│  │  │ :8083       │                                   │    │
-│  │  └─────────────┘                                   │    │
 │  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  注: 外部系统（app-springboot、app-vue）不注册到 Nacos      │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### 5.2 服务发现配置
 
-每个服务的 `application.yml` 都包含：
+SSO 平台核心服务的 `application.yml` 包含 Nacos 配置：
 
 ```yaml
 spring:
@@ -356,9 +348,11 @@ spring:
         server-addr: ${NACOS_ADDR:127.0.0.1:8848}
 ```
 
+外部系统（如 app-springboot）不需要配置 Nacos，直接使用 auth-server 的 JWKS 端点验证 Token。
+
 ### 5.3 动态路由
 
-Gateway 使用 `lb://<服务名>` 进行动态路由：
+Gateway 使用 `lb://<服务名>` 进行动态路由，只路由 SSO 平台核心服务：
 
 ```yaml
 spring:
@@ -369,7 +363,15 @@ spring:
           uri: lb://auth-server  # 使用服务名，从 Nacos 获取地址
           predicates:
             - Path=/auth/**
+        - id: resource-api
+          uri: lb://resource-api
+          predicates:
+            - Path=/api/**
+          filters:
+            - StripPrefix=1
 ```
+
+注: 外部系统（如 app-springboot）不通过 Gateway 路由，前端直接调用。
 
 ---
 
@@ -482,20 +484,24 @@ public class TokenRelayGlobalFilter implements GlobalFilter, Ordered {
 
 按以下顺序启动服务：
 
+**SSO 平台核心服务**：
 1. **auth-server** (port 9000)
-2. **app-springboot** (port 8082)
-3. **resource-api** (port 8083)
-4. **gateway** (port 8080)
+2. **resource-api** (port 8083)
+3. **gateway** (port 8080)
+
+**外部系统示例**（可选，独立启动）：
+4. **app-springboot** (port 8082) - 外部后端系统示例
+5. **app-vue** (port 5173) - 外部前端系统示例
 
 ### 7.3 验证服务注册
 
 1. 访问 Nacos 控制台：http://127.0.0.1:8848/nacos
 2. 使用默认账号登录：nacos / nacos
-3. 查看服务列表，应看到 4 个服务：
+3. 查看服务列表，应看到 3 个 SSO 平台核心服务：
    - gateway
    - auth-server
-   - app-springboot
    - resource-api
+4. 外部系统（app-springboot、app-vue）不应出现在服务列表中
 
 ### 7.4 验证 Gateway 路由
 
@@ -506,67 +512,70 @@ public class TokenRelayGlobalFilter implements GlobalFilter, Ordered {
    curl http://gateway.local:8080/auth/
    ```
 
-2. **访问 app-springboot 通过 Gateway**
+2. **访问 resource-api 通过 Gateway**
 
    ```bash
-   # 应该重定向到登录页面
-   curl -v http://gateway.local:8080/app/
+   # 应该需要认证
+   curl -v http://gateway.local:8080/api/
    ```
 
-### 7.5 验证统一登录流程
+### 7.5 验证外部系统直接接入
 
-1. **打开浏览器**，访问 http://gateway.local:8080/app/
-
-2. **应重定向到登录页面**：
-   - URL 变为 http://auth.local:9000/login
-   - 显示登录表单
-
-3. **输入用户名密码**：
-   - 用户名：admin
-   - 密码：（你的密码）
-
-4. **登录成功后**：
-   - 应重定向回 http://gateway.local:8080/app/
-   - 应能看到 app-springboot 的页面
-
-5. **再次访问**：
-   - 直接访问 http://gateway.local:8080/app/
-   - 应无需重新登录（Session 有效）
-
-6. **访问其他服务**：
-   - 访问 http://gateway.local:8080/api/
-   - 应能访问 resource-api 的资源
-
-### 7.6 验证 Token 中继
-
-1. **在下游服务添加日志**
-
-   在 `app-springboot` 的 Controller 中添加：
-
-   ```java
-   @GetMapping("/api/test")
-   public Map<String, Object> test(@AuthenticationPrincipal Jwt jwt) {
-       Map<String, Object> result = new HashMap<>();
-       result.put("sub", jwt.getSubject());
-       result.put("claims", jwt.getClaims());
-       return result;
-   }
-   ```
-
-2. **访问测试接口**
+1. **启动外部后端系统示例**
 
    ```bash
-   # 通过 Gateway 访问
-   curl http://gateway.local:8080/app/api/test
+   cd app-springboot
+   mvn spring-boot:run
    ```
 
-3. **验证响应**
+2. **访问公开 API**
 
-   应返回 JWT Token 的 claims，包含：
-   - `sub`：用户名
-   - `username`：用户名
-   - `nickname`：昵称
-   - `email`：邮箱
+   ```bash
+   # 应该返回公开数据，不需要 Token
+   curl http://localhost:8082/api/public
+   ```
+
+3. **访问受保护 API**（需要先获取 Token）
+
+   ```bash
+   # 首先获取 Token（通过 app-vue 或直接调用 auth-server）
+   # 然后使用 Token 访问
+   curl -H "Authorization: Bearer <token>" http://localhost:8082/api/protected
+   ```
+
+4. **验证 CORS 配置**
+
+   ```bash
+   # 从不同源发起请求，检查 CORS 头
+   curl -H "Origin: http://client.a.local:5173" -H "Access-Control-Request-Method: GET" -X OPTIONS http://localhost:8082/api/public
+   ```
+
+### 7.6 验证外部前端系统示例
+
+1. **启动外部前端系统示例**
+
+   ```bash
+   cd app-vue
+   npm install
+   npm run dev
+   ```
+
+2. **访问前端应用**
+
+   打开浏览器，访问 http://client.a.local:5173
+
+3. **测试登录流程**
+
+   - 点击登录按钮
+   - 应重定向到 auth-server 的登录页面
+   - 登录成功后应重定向回前端
+   - 应显示用户信息
+
+4. **测试调用外部后端 API**
+
+   - 登录后，前端应能调用 app-springboot 的 API
+   - 应正确传递 Token
+   - 应显示 API 返回的数据
 
 ---
 
@@ -608,6 +617,28 @@ public class TokenRelayGlobalFilter implements GlobalFilter, Ordered {
 1. 检查 Token 是否正确传递
 2. 检查下游服务的 `issuer-uri` 配置
 
+### 8.5 外部系统 CORS 错误
+
+**问题**：前端调用外部后端 API 时出现 CORS 错误
+
+**原因**：外部后端未配置 CORS 或配置不正确
+
+**解决**：
+1. 检查外部后端的 CORS 配置
+2. 确保允许前端的源（Origin）
+3. 确保允许 Authorization 头
+
+### 8.6 外部系统 Token 验证失败
+
+**问题**：外部后端返回 401 Unauthorized
+
+**原因**：外部后端无法验证 Token 或 Token 无效
+
+**解决**：
+1. 检查外部后端的 `issuer-uri` 配置是否正确
+2. 确认 auth-server 的 JWKS 端点可访问
+3. 检查 Token 是否过期或被撤销
+
 ---
 
 ## 9. 目录结构
@@ -632,19 +663,19 @@ project_oauth2/
 │       ├── java/com/example/authserver/
 │       └── resources/
 │           └── application.yml
-├── app-springboot/                  # 业务应用服务
+├── app-springboot/                  # 外部后端系统示例
 │   ├── pom.xml
 │   └── src/main/
 │       ├── java/com/example/appspringboot/
 │       └── resources/
 │           └── application.yml
-├── resource-api/                    # 资源服务
+├── resource-api/                    # SSO 平台资源服务
 │   ├── pom.xml
 │   └── src/main/
 │       ├── java/com/example/resourceapi/
 │       └── resources/
 │           └── application.yml
-├── app-vue/                         # 前端应用
+├── app-vue/                         # 外部前端系统示例
 └── docs/                            # 文档
     └── architecture-spring-cloud.md
 ```
@@ -655,11 +686,12 @@ project_oauth2/
 
 ### 10.1 架构优势
 
-1. **统一入口**：所有请求通过 Gateway，便于管理和监控
+1. **统一入口**：SSO 平台核心服务通过 Gateway 统一入口，便于管理和监控
 2. **统一登录**：用户只需登录一次，即可访问所有服务
 3. **服务解耦**：各服务独立部署，互不影响
-4. **动态扩展**：新增服务只需注册到 Nacos，Gateway 自动路由
-5. **SSO 集成**：外部业务系统通过 SSO 平台实现单点登录
+4. **动态扩展**：SSO 平台核心服务注册到 Nacos，Gateway 自动路由
+5. **灵活集成**：外部系统可选择通过 Gateway 代理或直接接入 SSO 平台
+6. **独立部署**：外部系统可独立部署，不依赖 SSO 平台基础设施
 
 ### 10.2 SSO 平台 vs 外部业务系统
 
@@ -668,10 +700,21 @@ project_oauth2/
 | Gateway | SSO 平台核心 | 统一入口，OAuth2 Client |
 | auth-server | SSO 平台核心 | OAuth2 授权服务 |
 | resource-api | SSO 平台核心 | 平台资源服务 |
-| app-springboot | 外部业务系统 | 独立业务，通过 SSO 集成 |
-| 其他系统 A/B | 外部业务系统 | 独立业务，通过 SSO 集成 |
+| app-springboot | 外部 Web 应用示例 | 演示外部 Web 应用如何接入 SSO |
+| app-vue | 外部前端系统示例 | 演示外部前端如何接入 SSO |
 
-### 10.3 外部业务系统集成指南
+### 10.3 外部业务系统接入方式
+
+外部业务系统接入 SSO 平台有两种方式，根据系统类型选择：
+
+#### 方式一：通过 Gateway 代理（适用于内部微服务）
+
+适用于与 SSO 平台在同一微服务网格内的系统，需要注册到 Nacos。
+
+**架构**：
+```
+外部系统 → 注册到 Nacos → 通过 Gateway 路由 → 验证 Token
+```
 
 **集成步骤**：
 
@@ -753,15 +796,173 @@ project_oauth2/
                - StripPrefix=1
    ```
 
+#### 方式二：OAuth2 Client（适用于外部独立系统）
+
+适用于外部独立部署的系统，不需要注册到 Nacos，只需知道 auth-server 地址。
+
+**架构**：
+```
+外部系统 → 直接与 auth-server 交互获取 Token
+外部系统 → 使用 Token 访问受保护资源
+```
+
+**集成步骤**：
+
+1. **添加依赖**
+
+   ```xml
+   <dependency>
+       <groupId>org.springframework.boot</groupId>
+       <artifactId>spring-boot-starter-oauth2-client</artifactId>
+   </dependency>
+   ```
+
+2. **配置 application.yml**
+
+   ```yaml
+   spring:
+     security:
+       oauth2:
+         client:
+           registration:
+             your-app:
+               client-id: your-client-id
+               client-secret: "{noop}your-client-secret"
+               scope: openid,profile,email
+               authorization-grant-type: authorization_code
+               redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+               client-authentication-method: client_secret_basic
+           provider:
+             your-app:
+               issuer-uri: http://auth.local:9000
+   ```
+
+3. **配置 SecurityConfig**
+
+   ```java
+   @Configuration
+   @EnableWebSecurity
+   public class SecurityConfig {
+       @Bean
+       public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+           http
+               .oauth2Login(oauth2 -> oauth2
+                   .defaultSuccessUrl("/", true)
+               )
+               .authorizeHttpRequests(auth -> auth
+                   .requestMatchers("/", "/error").permitAll()
+                   .anyRequest().authenticated()
+               );
+           return http.build();
+       }
+   }
+   ```
+
+4. **获取用户信息**
+
+   ```java
+   @GetMapping("/")
+   public String index(@AuthenticationPrincipal OidcUser oidcUser, Model model) {
+       if (oidcUser != null) {
+           model.addAttribute("username", oidcUser.getPreferredUsername());
+           model.addAttribute("email", oidcUser.getEmail());
+       }
+       return "index";
+   }
+   ```
+
 ### 10.4 注意事项
 
 1. **Gateway 使用 WebFlux**：不能引入 `spring-boot-starter-web`
 2. **下游服务使用 Servlet**：可以正常使用 Spring MVC
 3. **Session 存储在 Redis**：支持 Gateway 多实例部署
 4. **Token 通过请求头传递**：下游服务验证 JWT Token
-5. **外部系统只需配置 Resource Server**：不需要实现登录逻辑
+5. **接入方式选择**：
+   - 内部微服务：使用方式一（通过 Gateway 代理）
+   - 外部独立系统：使用方式二（OAuth2 Client）
+6. **外部系统类型**：
+   - 前端 SPA（如 app-vue）：使用 OAuth2 PKCE 流程
+   - Web 应用（如 app-springboot）：使用 OAuth2 Authorization Code Flow
 
-### 10.5 后续扩展
+### 10.5 示例项目说明
+
+本项目包含两个示例，演示外部系统如何接入 SSO 平台：
+
+#### app-vue（外部前端系统示例）
+
+- **位置**：`app-vue/`
+- **技术栈**：Vue 3 + Vite
+- **接入方式**：OAuth2 PKCE 流程（方式二）
+- **功能**：
+  - 使用 OAuth2 PKCE 流程获取 Token
+  - 直接调用 auth-server 的 userinfo 端点获取用户信息
+  - 独立管理 Token（存储在 localStorage）
+- **启动**：
+  ```bash
+  cd app-vue
+  npm install
+  npm run dev
+  ```
+- **访问**：http://client.a.local:5173
+
+#### app-springboot（外部 Web 应用示例）
+
+- **位置**：`app-springboot/`
+- **技术栈**：Spring Boot + Spring Security OAuth2 Client + Thymeleaf
+- **接入方式**：OAuth2 Authorization Code Flow（方式二）
+- **功能**：
+  - 作为 OAuth2 Client，直接与 auth-server 交互获取 Token
+  - 提供传统的 Web 页面（Thymeleaf）
+  - 不依赖 Gateway 和 Nacos
+- **启动**：
+  ```bash
+  cd app-springboot
+  mvn spring-boot:run
+  ```
+- **访问**：http://localhost:8082
+
+#### 示例架构图
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      示例项目架构                                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  SSO 平台                                                       │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  auth-server:9000                                        │   │
+│  │  - OAuth2 授权服务                                        │   │
+│  │  - Token 端点                                            │   │
+│  │  - JWKS 端点                                             │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  外部系统示例（独立部署，互不依赖）                               │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                                                         │   │
+│  │  app-vue:5173                    app-springboot:8082     │   │
+│  │  ┌─────────────────┐            ┌─────────────────┐     │   │
+│  │  │  前端 SPA        │            │  Web 应用        │     │   │
+│  │  │  (OAuth2 Client) │            │  (OAuth2 Client) │     │   │
+│  │  │                 │            │                 │     │   │
+│  │  │  1. 获取 Token   │            │  1. 获取 Token   │     │   │
+│  │  │  2. 显示信息     │            │  2. 显示页面     │     │   │
+│  │  │                 │            │                 │     │   │
+│  │  └────────┬────────┘            └────────┬────────┘     │   │
+│  │           │                              │              │   │
+│  └───────────┼──────────────────────────────┼──────────────┘   │
+│              │                              │                   │
+│              ▼                              ▼                   │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                   auth-server:9000                       │   │
+│  │                   (各自独立接入)                          │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  注: 两个外部系统各自独立接入 SSO，互不依赖                      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 10.6 后续扩展
 
 1. **负载均衡**：同一服务部署多实例，Gateway 自动负载均衡
 2. **熔断降级**：集成 Sentinel 实现熔断降级
