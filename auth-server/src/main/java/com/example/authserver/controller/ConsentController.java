@@ -4,8 +4,8 @@ import com.example.authserver.entity.OAuth2Client;
 import com.example.authserver.entity.SysUser;
 import com.example.authserver.repository.OAuth2ClientMapper;
 import com.example.authserver.service.AccessControlService;
-import com.example.authserver.service.CustomOAuth2AuthorizationConsentService;
 import com.example.authserver.service.CustomUserDetailsService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,7 @@ import java.util.List;
 public class ConsentController {
 
     private final OAuth2ClientMapper oauth2ClientMapper;
-    private final CustomOAuth2AuthorizationConsentService consentService;
+    private final OAuth2AuthorizationConsentService consentService;
     private final AccessControlService accessControlService;
     private final CustomUserDetailsService userDetailsService;
 

@@ -106,6 +106,8 @@ CREATE TABLE IF NOT EXISTS oauth2_authorization (
     attributes                    TEXT DEFAULT NULL,
     state                         VARCHAR(500) DEFAULT NULL,
     authorization_code_value      TEXT DEFAULT NULL,
+    authorization_code_issued_at  TIMESTAMP DEFAULT NULL,
+    authorization_code_expires_at TIMESTAMP DEFAULT NULL,
     authorization_code_metadata   TEXT DEFAULT NULL,
     access_token_value            TEXT DEFAULT NULL,
     access_token_metadata         TEXT DEFAULT NULL,
