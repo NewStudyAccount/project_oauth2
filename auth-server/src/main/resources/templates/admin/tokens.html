@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token 管理 - 管理后台</title>
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+
+<div class="navbar">
+    <h1><a th:href="@{/admin}" style="color:white;text-decoration:none;">统一认证中心 - 管理后台</a></h1>
+    <div class="nav-user">
+        <span sec:authentication="name">admin</span>
+        &nbsp;|&nbsp;
+        <a th:href="@{/}" style="color:white;">首页</a>
+        &nbsp;|&nbsp;
+        <form th:action="@{/logout}" method="post" style="display:inline;">
+            <button type="submit" style="background:none;border:none;color:white;cursor:pointer;font-size:14px;">登出</button>
+        </form>
+    </div>
+</div>
+
+<div class="sidebar">
+    <a th:href="@{/admin}" class="menu-item">系统概览</a>
+    <a th:href="@{/admin/users}" class="menu-item">用户管理</a>
+    <a th:href="@{/admin/clients}" class="menu-item">客户端管理</a>
+    <a th:href="@{/admin/access}" class="menu-item">权限管理</a>
+    <a th:href="@{/admin/audit-logs}" class="menu-item">审计日志</a>
+    <a th:href="@{/admin/tokens}" class="menu-item active">Token 管理</a>
+</div>
+
+<div class="main-content">
+
+    <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+    <div class="page-header">
+        <h2>Token 管理</h2>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom:12px;">强制撤销用户 Token</h3>
+        <p style="color:#666;font-size:14px;margin-bottom:16px;">
+            撤销指定用户的所有活跃 Token，用户将被强制下线，需要重新登录。
+        </p>
+        <form th:action="@{/admin/tokens/revoke}" method="post" style="display:flex;gap:12px;align-items:center;">
+            <label style="font-weight:500;">用户 ID：</label>
+            <input type="number" name="userId" placeholder="输入用户 ID" required
+                   style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;width:200px;">
+            <button type="submit" class="btn btn-danger"
+                    onclick="return confirm('确定要撤销该用户的所有 Token 吗？用户将被强制下线。')">
+                撤销所有 Token
+            </button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom:12px;">说明</h3>
+        <ul style="color:#666;font-size:14px;line-height:2;padding-left:20px;">
+            <li>撤销操作会将用户的所有 Access Token 加入黑名单</li>
+            <li>被撤销的 Token 在下次验证时将被拒绝</li>
+            <li>用户需要重新登录才能获取新的 Token</li>
+            <li>此操作不可撤销，请谨慎使用</li>
+        </ul>
+    </div>
+
+</div>
+
+</body>
+</html>

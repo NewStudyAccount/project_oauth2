@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - 统一认证中心</title>
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+
+<div class="navbar">
+    <h1><a th:href="@{/admin}" style="color:white;text-decoration:none;">统一认证中心 - 管理后台</a></h1>
+    <div class="nav-user">
+        <span sec:authentication="name">admin</span>
+        &nbsp;|&nbsp;
+        <a th:href="@{/}" style="color:white;">首页</a>
+        &nbsp;|&nbsp;
+        <form th:action="@{/logout}" method="post" style="display:inline;">
+            <button type="submit" style="background:none;border:none;color:white;cursor:pointer;font-size:14px;">登出</button>
+        </form>
+    </div>
+</div>
+
+<div class="sidebar">
+    <a th:href="@{/admin}" class="menu-item active">系统概览</a>
+    <a th:href="@{/admin/users}" class="menu-item">用户管理</a>
+    <a th:href="@{/admin/clients}" class="menu-item">客户端管理</a>
+    <a th:href="@{/admin/access}" class="menu-item">权限管理</a>
+    <a th:href="@{/admin/audit-logs}" class="menu-item">审计日志</a>
+    <a th:href="@{/admin/tokens}" class="menu-item">Token 管理</a>
+</div>
+
+<div class="main-content">
+
+    <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+    <div class="page-header">
+        <h2>系统概览</h2>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number" th:text="${userCount}">0</div>
+            <div class="stat-label">用户总数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" th:text="${clientCount}">0</div>
+            <div class="stat-label">客户端总数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" th:text="${auditCount}">0</div>
+            <div class="stat-label">审计日志总数</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom:12px;">快捷操作</h3>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <a th:href="@{/admin/users}" class="btn btn-primary">管理用户</a>
+            <a th:href="@{/admin/clients}" class="btn btn-primary">管理客户端</a>
+            <a th:href="@{/admin/access}" class="btn btn-primary">管理权限</a>
+            <a th:href="@{/admin/audit-logs}" class="btn btn-primary">查看审计日志</a>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

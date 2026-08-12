@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 - 管理后台</title>
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+
+<div class="navbar">
+    <h1><a th:href="@{/admin}" style="color:white;text-decoration:none;">统一认证中心 - 管理后台</a></h1>
+    <div class="nav-user">
+        <span sec:authentication="name">admin</span>
+        &nbsp;|&nbsp;
+        <a th:href="@{/}" style="color:white;">首页</a>
+        &nbsp;|&nbsp;
+        <form th:action="@{/logout}" method="post" style="display:inline;">
+            <button type="submit" style="background:none;border:none;color:white;cursor:pointer;font-size:14px;">登出</button>
+        </form>
+    </div>
+</div>
+
+<div class="sidebar">
+    <a th:href="@{/admin}" class="menu-item">系统概览</a>
+    <a th:href="@{/admin/users}" class="menu-item active">用户管理</a>
+    <a th:href="@{/admin/clients}" class="menu-item">客户端管理</a>
+    <a th:href="@{/admin/access}" class="menu-item">权限管理</a>
+    <a th:href="@{/admin/audit-logs}" class="menu-item">审计日志</a>
+    <a th:href="@{/admin/tokens}" class="menu-item">Token 管理</a>
+</div>
+
+<div class="main-content">
+
+    <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+    <div class="page-header">
+        <h2>用户管理</h2>
+    </div>
+
+    <div class="card">
+        <table class="data-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>用户名</th>
+                <th>昵称</th>
+                <th>邮箱</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="user : ${users}">
+                <td th:text="${user.id}"></td>
+                <td th:text="${user.username}"></td>
+                <td th:text="${user.nickname}"></td>
+                <td th:text="${user.email}"></td>
+                <td>
+                    <span th:if="${user.status == 1}" class="badge badge-success">正常</span>
+                    <span th:if="${user.status == 0}" class="badge badge-danger">禁用</span>
+                </td>
+                <td th:text="${user.createdAt}"></td>
+                <td>
+                    <form th:action="@{/admin/users/{id}/toggle(id=${user.id})}" method="post" style="display:inline;">
+                        <button th:if="${user.status == 1}" type="submit" class="btn btn-danger btn-sm"
+                                onclick="return confirm('确定要禁用该用户吗？禁用后将撤销其所有Token。')">禁用</button>
+                        <button th:if="${user.status == 0}" type="submit" class="btn btn-success btn-sm">启用</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div th:if="${#lists.isEmpty(users)}" class="empty-state">暂无用户数据</div>
+    </div>
+
+</div>
+
+</body>
+</html>
