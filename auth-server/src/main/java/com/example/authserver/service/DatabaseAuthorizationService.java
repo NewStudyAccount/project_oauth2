@@ -7,10 +7,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
-import org.springframework.security.oauth2.core.AbstractOAuth2Token;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationCode;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
@@ -21,11 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -63,8 +59,6 @@ public class DatabaseAuthorizationService implements OAuth2AuthorizationService 
         );
         return results.isEmpty() ? null : results.get(0);
     }
-
-
 
     @Override
     public OAuth2Authorization findByToken(String token, OAuth2TokenType tokenType) {
@@ -122,7 +116,7 @@ public class DatabaseAuthorizationService implements OAuth2AuthorizationService 
                 .authorizedScopes(authorizedScopes)
                 .attributes(attrs -> attrs.putAll(attributes));
 
-        // Pre-read all token values and metadata from ResultSet (avoids SQLException in lambdas)
+        // Pre-read all token values and metadata from ResultSet
         String authCodeValue = rs.getString("authorization_code_value");
         String authCodeMetadata = rs.getString("authorization_code_metadata");
         String accessTokenValue = rs.getString("access_token_value");
@@ -136,7 +130,7 @@ public class DatabaseAuthorizationService implements OAuth2AuthorizationService 
 
         // Authorization Code
         if (authCodeValue != null) {
-            AuthorizationCodeToken authCode = new AuthorizationCodeToken(authCodeValue,
+            OAuth2AuthorizationCode authCode = new OAuth2AuthorizationCode(authCodeValue,
                     toInstant(rs.getTimestamp("authorization_code_issued_at")),
                     toInstant(rs.getTimestamp("authorization_code_expires_at")));
             builder.token(authCode, meta -> deserializeTokenMetadata(meta, authCodeMetadata));
@@ -189,17 +183,17 @@ public class DatabaseAuthorizationService implements OAuth2AuthorizationService 
                 auth.getAuthorizationGrantType().getValue(),
                 serializeScopes(auth.getAuthorizedScopes()),
                 serializeMap(auth.getAttributes()),
-                auth.getAttribute("state"),
-                getTokenValue(auth, AuthorizationCodeToken.class),
-                toTimestamp(getTokenIssuedAt(auth, AuthorizationCodeToken.class)),
-                toTimestamp(getTokenExpiresAt(auth, AuthorizationCodeToken.class)),
-                serializeTokenMetadata(auth, AuthorizationCodeToken.class),
+                auth.<String>getAttribute("state"),
+                getTokenValue(auth, OAuth2AuthorizationCode.class),
+                toTimestamp(getTokenIssuedAt(auth, OAuth2AuthorizationCode.class)),
+                toTimestamp(getTokenExpiresAt(auth, OAuth2AuthorizationCode.class)),
+                serializeTokenMetadata(auth, OAuth2AuthorizationCode.class),
                 getTokenValue(auth, OAuth2AccessToken.class),
                 toTimestamp(getTokenIssuedAt(auth, OAuth2AccessToken.class)),
                 toTimestamp(getTokenExpiresAt(auth, OAuth2AccessToken.class)),
                 serializeTokenMetadata(auth, OAuth2AccessToken.class),
-                auth.getAccessToken() != null ? "Bearer" : null,
-                auth.getAccessToken() != null ? serializeScopes(auth.getAccessToken().getToken().getScopes()) : null,
+                auth.getToken(OAuth2AccessToken.class) != null ? "Bearer" : null,
+                auth.getToken(OAuth2AccessToken.class) != null ? serializeScopes(auth.getToken(OAuth2AccessToken.class).getToken().getScopes()) : null,
                 getTokenValue(auth, OidcIdToken.class),
                 toTimestamp(getTokenIssuedAt(auth, OidcIdToken.class)),
                 toTimestamp(getTokenExpiresAt(auth, OidcIdToken.class)),
@@ -227,17 +221,17 @@ public class DatabaseAuthorizationService implements OAuth2AuthorizationService 
                 auth.getAuthorizationGrantType().getValue(),
                 serializeScopes(auth.getAuthorizedScopes()),
                 serializeMap(auth.getAttributes()),
-                auth.getAttribute("state"),
-                getTokenValue(auth, AuthorizationCodeToken.class),
-                toTimestamp(getTokenIssuedAt(auth, AuthorizationCodeToken.class)),
-                toTimestamp(getTokenExpiresAt(auth, AuthorizationCodeToken.class)),
-                serializeTokenMetadata(auth, AuthorizationCodeToken.class),
+                auth.<String>getAttribute("state"),
+                getTokenValue(auth, OAuth2AuthorizationCode.class),
+                toTimestamp(getTokenIssuedAt(auth, OAuth2AuthorizationCode.class)),
+                toTimestamp(getTokenExpiresAt(auth, OAuth2AuthorizationCode.class)),
+                serializeTokenMetadata(auth, OAuth2AuthorizationCode.class),
                 getTokenValue(auth, OAuth2AccessToken.class),
                 toTimestamp(getTokenIssuedAt(auth, OAuth2AccessToken.class)),
                 toTimestamp(getTokenExpiresAt(auth, OAuth2AccessToken.class)),
                 serializeTokenMetadata(auth, OAuth2AccessToken.class),
-                auth.getAccessToken() != null ? "Bearer" : null,
-                auth.getAccessToken() != null ? serializeScopes(auth.getAccessToken().getToken().getScopes()) : null,
+                auth.getToken(OAuth2AccessToken.class) != null ? "Bearer" : null,
+                auth.getToken(OAuth2AccessToken.class) != null ? serializeScopes(auth.getToken(OAuth2AccessToken.class).getToken().getScopes()) : null,
                 getTokenValue(auth, OidcIdToken.class),
                 toTimestamp(getTokenIssuedAt(auth, OidcIdToken.class)),
                 toTimestamp(getTokenExpiresAt(auth, OidcIdToken.class)),
@@ -251,45 +245,32 @@ public class DatabaseAuthorizationService implements OAuth2AuthorizationService 
         );
     }
 
-    // --- Token helper methods (use reflection to avoid Token<T> API issues) ---
+    // --- Token helper methods ---
 
-    @SuppressWarnings("unchecked")
-    private <T> String getTokenValue(OAuth2Authorization auth, Class<T> tokenClass) {
-        Object token = auth.getToken(String.valueOf(tokenClass));
-        if (token == null) return null;
-        try {
-            Object oauth2Token = token.getClass().getMethod("getToken").invoke(token);
-            return (String) oauth2Token.getClass().getMethod("getTokenValue").invoke(oauth2Token);
-        } catch (Exception e) {
-            log.error("Failed to get token value for {}", tokenClass.getSimpleName(), e);
-            return null;
-        }
+    private String resolveTokenType(Class<?> tokenClass) {
+        if (OAuth2AuthorizationCode.class.isAssignableFrom(tokenClass)) return "code";
+        if (OAuth2AccessToken.class.isAssignableFrom(tokenClass)) return "access_token";
+        if (OidcIdToken.class.isAssignableFrom(tokenClass)) return "id_token";
+        if (OAuth2RefreshToken.class.isAssignableFrom(tokenClass)) return "refresh_token";
+        throw new IllegalArgumentException("Unsupported token class: " + tokenClass.getName());
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> Instant getTokenIssuedAt(OAuth2Authorization auth, Class<T> tokenClass) {
-        Object token = auth.getToken(String.valueOf(tokenClass));
+    private String getTokenValue(OAuth2Authorization auth, Class<?> tokenClass) {
+        OAuth2Authorization.Token<?> token = auth.getToken(resolveTokenType(tokenClass));
         if (token == null) return null;
-        try {
-            Object oauth2Token = token.getClass().getMethod("getToken").invoke(token);
-            return (Instant) oauth2Token.getClass().getMethod("getIssuedAt").invoke(oauth2Token);
-        } catch (Exception e) {
-            log.error("Failed to get token issuedAt for {}", tokenClass.getSimpleName(), e);
-            return null;
-        }
+        return token.getToken().getTokenValue();
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> Instant getTokenExpiresAt(OAuth2Authorization auth, Class<T> tokenClass) {
-        Object token = auth.getToken(String.valueOf(tokenClass));
+    private Instant getTokenIssuedAt(OAuth2Authorization auth, Class<?> tokenClass) {
+        OAuth2Authorization.Token<?> token = auth.getToken(resolveTokenType(tokenClass));
         if (token == null) return null;
-        try {
-            Object oauth2Token = token.getClass().getMethod("getToken").invoke(token);
-            return (Instant) oauth2Token.getClass().getMethod("getExpiresAt").invoke(oauth2Token);
-        } catch (Exception e) {
-            log.error("Failed to get token expiresAt for {}", tokenClass.getSimpleName(), e);
-            return null;
-        }
+        return token.getToken().getIssuedAt();
+    }
+
+    private Instant getTokenExpiresAt(OAuth2Authorization auth, Class<?> tokenClass) {
+        OAuth2Authorization.Token<?> token = auth.getToken(resolveTokenType(tokenClass));
+        if (token == null) return null;
+        return token.getToken().getExpiresAt();
     }
 
     // --- Serialization helpers ---
@@ -324,17 +305,10 @@ public class DatabaseAuthorizationService implements OAuth2AuthorizationService 
         return Set.of(scopesStr.split(","));
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> String serializeTokenMetadata(OAuth2Authorization auth, Class<T> tokenClass) {
-        Object token = auth.getToken(String.valueOf(tokenClass));
+    private String serializeTokenMetadata(OAuth2Authorization auth, Class<?> tokenClass) {
+        OAuth2Authorization.Token<?> token = auth.getToken(resolveTokenType(tokenClass));
         if (token == null) return null;
-        try {
-            Map<String, Object> metadata = (Map<String, Object>) token.getClass().getMethod("getMetadata").invoke(token);
-            return serializeMap(new HashMap<>(metadata));
-        } catch (Exception e) {
-            log.error("Failed to serialize token metadata for {}", tokenClass.getSimpleName(), e);
-            return null;
-        }
+        return serializeMap(new HashMap<>(token.getMetadata()));
     }
 
     private void deserializeTokenMetadata(Map<String, Object> metadata, String json) {
@@ -353,15 +327,5 @@ public class DatabaseAuthorizationService implements OAuth2AuthorizationService 
 
     private Timestamp toTimestamp(Instant instant) {
         return instant != null ? Timestamp.from(instant) : null;
-    }
-
-    /**
-     * 授权码 Token 的具体类型，替代已移除的 OAuth2AuthorizationCode。
-     * 用作 OAuth2Authorization 中 token map 的类型 key。
-     */
-    static class AuthorizationCodeToken extends AbstractOAuth2Token {
-        AuthorizationCodeToken(String tokenValue, Instant issuedAt, Instant expiresAt) {
-            super(tokenValue, issuedAt, expiresAt);
-        }
     }
 }

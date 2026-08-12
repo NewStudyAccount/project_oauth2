@@ -15,16 +15,12 @@ spring:
             client-secret: "Admin@123"
             scope: openid,profile,email
             authorization-grant-type: authorization_code
-            #重定向地址
+            #重定向地址（前后端共用 client.a.local 域名）
             redirect-uri: "http://client.a.local:8082/login/oauth2/code/springboot-app"
             client-authentication-method: client_secret_basic
         provider:
           springboot-app:
             issuer-uri: http://auth.local:9000
-
-  thymeleaf:
-    prefix: classpath:/templates/
-    suffix: .html
 
 logging:
   level:

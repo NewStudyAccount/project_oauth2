@@ -5,14 +5,6 @@ spring:
   application:
     name: auth-server
 
-  # Nacos 配置
-  cloud:
-    nacos:
-      discovery:
-        server-addr: 192.168.99.100:8848
-        username: nacos
-        password: nacos
-
   datasource:
     url: jdbc:mysql://192.168.99.100:3306/oauth2_center?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true
     username: root
