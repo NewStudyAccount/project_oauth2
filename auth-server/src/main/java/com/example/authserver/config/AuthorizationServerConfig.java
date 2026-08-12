@@ -50,6 +50,7 @@ public class AuthorizationServerConfig {
                 .oidc(Customizer.withDefaults());
 
         http
+                .cors(Customizer.withDefaults())
                 .exceptionHandling(exceptions -> exceptions
                         .defaultAuthenticationEntryPointFor(
                                 new LoginUrlAuthenticationEntryPoint("/login"),

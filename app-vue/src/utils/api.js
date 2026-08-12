@@ -2,7 +2,7 @@
  * 外部后端 API 调用工具
  */
 
-const API_BASE_URL = 'http://localhost:8082'
+const API_BASE_URL = 'http://client.a.local:8082'
 
 /**
  * 通用 API 调用函数

@@ -4,4 +4,5 @@
 
 127.0.0.1  auth.local
 127.0.0.1  client.a.local
+127.0.0.1  client.b.local
 127.0.0.1  gateway.local

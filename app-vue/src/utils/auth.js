@@ -4,7 +4,7 @@
 
 const AUTH_SERVER = 'http://auth.local:9000'
 const CLIENT_ID = 'vue-app'
-const REDIRECT_URI = 'http://client.a.local:5173/callback'
+const REDIRECT_URI = 'http://client.b.local:5173/callback'
 
 /**
  * 构建授权 URL

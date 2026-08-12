@@ -51,7 +51,7 @@ spring:
                 - authorization_code
                 - refresh_token
               redirect-uris:
-                - http://client.a.local:5173/callback
+                - http://client.b.local:5173/callback
               scopes:
                 - openid
                 - profile

@@ -1,6 +1,7 @@
 /**
  * PKCE 工具 - 用于公开客户端的 OAuth2 授权码流程
  */
+import { sha256 as jsSha256 } from 'js-sha256'
 
 /**
  * 生成随机字符串
@@ -17,12 +18,19 @@ export function generateRandomString(length = 128) {
 
 /**
  * 计算 SHA-256 哈希
+ * 优先使用 Web Crypto API (安全上下文)，否则回退到 js-sha256
  */
 async function sha256(plain) {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(plain)
-  const hash = await crypto.subtle.digest('SHA-256', data)
-  return hash
+  // 检查 crypto.subtle 是否可用 (仅在安全上下文: HTTPS 或 localhost)
+  if (typeof crypto !== 'undefined' && crypto.subtle && crypto.subtle.digest) {
+    const encoder = new TextEncoder()
+    const data = encoder.encode(plain)
+    const hash = await crypto.subtle.digest('SHA-256', data)
+    return hash
+  }
+  // 回退: 使用 js-sha256 (返回 Uint8Array)
+  const hashArray = jsSha256.array(plain)
+  return new Uint8Array(hashArray).buffer
 }
 
 /**
