@@ -5,9 +5,14 @@ spring:
   application:
     name: app-springboot
 
-  # OAuth2 Client 配置 (直接与 auth-server 交互获取 Token)
+  # OAuth2 配置
   security:
     oauth2:
+      # Resource Server (验证 JWT Bearer Token)
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth.local:9000
+      # OAuth2 Client (登录获取 Token)
       client:
         registration:
           springboot-app:

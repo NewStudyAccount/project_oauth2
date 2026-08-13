@@ -25,7 +25,7 @@
 
 - [x] 5.1 创建 `app-vue3-springboot/` 目录，使用 Vite 初始化 Vue3 项目（`npm create vue@latest`）
 - [x] 5.2 配置 `package.json` 依赖：vue-router、axios
-- [x] 5.3 配置 `vite.config.js` 代理：`/api`、`/oauth2`、`/login`、`/logout` 代理到 `http://localhost:8082`
+- [x] 5.3 配置 `vite.config.ts` 代理：`/api`、`/oauth2`、`/login`、`/logout` 代理到 `http://localhost:8082`
 - [x] 5.4 创建项目基础结构：`src/views/`、`src/router/`、`src/api/`、`src/utils/`
 
 ## 6. 前端实现 - 路由与布局

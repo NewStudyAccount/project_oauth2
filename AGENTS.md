@@ -65,7 +65,7 @@ No test infrastructure exists yet (`src/test/` directories are empty or absent).
 RSA keypair generated at startup in `AuthorizationServerConfig.keyPair()` — not persisted. Restarting auth-server invalidates all existing tokens.
 
 ### Vue App Proxy
-`vite.config.js` proxies `/userinfo` requests to `http://auth.local:9000`. The Vue app uses PKCE flow with `client_id: vue-app` (no client secret).
+`vite.config.ts` proxies `/userinfo` requests to `http://auth.local:9000`. The Vue app uses PKCE flow with `client_id: vue-app` (no client secret).
 
 ### MyBatis-Plus Config
 - Underscore-to-camelCase mapping enabled
@@ -86,7 +86,7 @@ RSA keypair generated at startup in `AuthorizationServerConfig.keyPair()` — no
 - `auth-server/src/main/resources/db/schema.sql` — Full database schema
 - `auth-server/src/main/resources/db/data.sql` — Initial clients + admin user
 - `app-vue/src/utils/auth.js` — PKCE + token exchange logic
-- `app-vue/vite.config.js` — Dev server proxy config
+- `app-vue/vite.config.ts` — Dev server proxy config
 
 ## Gotchas
 

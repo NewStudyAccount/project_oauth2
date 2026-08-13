@@ -2,6 +2,7 @@ package com.example.appspringboot.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -29,6 +30,10 @@ public class SecurityConfig {
 
                 .oauth2Login(oauth2 -> oauth2
                         .defaultSuccessUrl("http://client.a.local:5173", true)
+                )
+
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(Customizer.withDefaults())
                 )
 
                 .logout(logout -> logout

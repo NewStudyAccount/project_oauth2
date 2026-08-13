@@ -8,6 +8,12 @@ import com.nimbusds.jose.proc.SecurityContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,7 +22,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
-import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
@@ -41,7 +46,10 @@ public class AuthorizationServerConfig {
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
 
         http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
-                .oidc(Customizer.withDefaults());
+                .oidc(Customizer.withDefaults())
+                .authorizationEndpoint(endpoint -> endpoint
+                        .consentPage("/consent")
+                );
 
         http
                 .cors(Customizer.withDefaults())
@@ -93,7 +101,22 @@ public class AuthorizationServerConfig {
                 .build();
     }
 
-    // OAuth2AuthorizationService → DatabaseAuthorizationService (@Service)
-    // OAuth2AuthorizationConsentService → DatabaseConsentService (@Service)
-    // RegisteredClientRepository → DatabaseClientRepository (@Component)
+    @Bean
+    public RegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate) {
+        return new EnabledCheckingRegisteredClientRepository(new JdbcRegisteredClientRepository(jdbcTemplate));
+    }
+
+    @Bean
+    public OAuth2AuthorizationService authorizationService(JdbcTemplate jdbcTemplate,
+                                                            RegisteredClientRepository registeredClientRepository) {
+        return new org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationService(
+                jdbcTemplate, registeredClientRepository);
+    }
+
+    @Bean
+    public OAuth2AuthorizationConsentService authorizationConsentService(JdbcTemplate jdbcTemplate,
+                                                                          RegisteredClientRepository registeredClientRepository) {
+        return new org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationConsentService(
+                jdbcTemplate, registeredClientRepository);
+    }
 }

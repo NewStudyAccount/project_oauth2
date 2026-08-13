@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>统一认证中心 - 登录</title>
+    <title>登录 - 统一认证中心</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
@@ -11,34 +11,26 @@
     <div class="auth-card">
         <div class="auth-header">
             <h1>统一认证中心</h1>
-            <p th:if="${clientName}" th:text="${clientName} + ' 需要您登录'"></p>
-            <p th:unless="${clientName}">请登录您的账号</p>
+            <p>请登录您的账号</p>
         </div>
 
-        <div th:if="${param.error}" class="alert alert-error">
-            用户名或密码错误
-        </div>
-
-        <div th:if="${param.logout}" class="alert alert-success">
-            您已成功登出
-        </div>
+        <div class="alert alert-error" th:if="${param.error}">用户名或密码错误</div>
+        <div class="alert alert-success" th:if="${param.logout}">已成功登出</div>
 
         <form th:action="@{/login}" method="post" class="auth-form">
             <div class="form-group">
-                <label for="username">账号</label>
+                <label for="username">用户名</label>
                 <input type="text" id="username" name="username" placeholder="请输入用户名" required autofocus>
             </div>
-
             <div class="form-group">
                 <label for="password">密码</label>
                 <input type="password" id="password" name="password" placeholder="请输入密码" required>
             </div>
-
             <button type="submit" class="btn btn-primary">登 录</button>
         </form>
 
         <div class="auth-footer">
-            <p>还没有账号？<a th:href="@{/register}">立即注册</a></p>
+            <p>还没有账号？<a th:href="@{/register}">注册账号</a></p>
         </div>
     </div>
 </div>

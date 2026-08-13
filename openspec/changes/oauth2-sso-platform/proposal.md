@@ -136,7 +136,7 @@ project_oauth2/
 │   │   │   ├── Callback.vue                    # OAuth2 回调
 │   │   │   └── Profile.vue
 │   │   └── router/index.js
-│   └── vite.config.js
+│   └── vite.config.ts
 │
 ├── app-springboot/              # Spring Boot 后端应用（机密客户端）
 │   └── src/main/java/
