@@ -46,6 +46,7 @@ async function load() {
     clients.value = data
   } catch (e) {
     console.error(e)
+    ElMessage.error('加载客户端列表失败')
   }
 }
 

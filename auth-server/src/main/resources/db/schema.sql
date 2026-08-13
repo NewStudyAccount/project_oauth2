@@ -16,23 +16,6 @@ CREATE TABLE IF NOT EXISTS sys_user (
     updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统用户表';
 
--- OAuth2 客户端注册表
-CREATE TABLE IF NOT EXISTS oauth2_client (
-    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
-    client_id       VARCHAR(100) NOT NULL UNIQUE,
-    client_secret   VARCHAR(200),
-    client_name     VARCHAR(100),
-    client_type     VARCHAR(20) DEFAULT 'INTERNAL' COMMENT 'INTERNAL:内部应用 THIRD_PARTY:第三方应用',
-    scopes          VARCHAR(500) DEFAULT 'openid,profile,email',
-    grant_types     VARCHAR(200) DEFAULT 'authorization_code,refresh_token',
-    redirect_uris   VARCHAR(1000),
-    require_consent TINYINT DEFAULT 0 COMMENT '是否需要用户确认授权: 0:不需要(内部) 1:需要(第三方)',
-    access_token_ttl INT DEFAULT 1800 COMMENT 'access_token有效期(秒),默认30分钟',
-    refresh_token_ttl INT DEFAULT 604800 COMMENT 'refresh_token有效期(秒),默认7天',
-    status          TINYINT DEFAULT 1 COMMENT '1:正常 0:禁用',
-    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='OAuth2客户端表';
-
 -- 用户-系统访问权限表
 CREATE TABLE IF NOT EXISTS user_client_access (
     id          BIGINT PRIMARY KEY AUTO_INCREMENT,

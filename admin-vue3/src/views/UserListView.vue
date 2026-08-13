@@ -35,6 +35,7 @@ async function load() {
     users.value = data
   } catch (e) {
     console.error(e)
+    ElMessage.error('加载用户列表失败')
   }
 }
 

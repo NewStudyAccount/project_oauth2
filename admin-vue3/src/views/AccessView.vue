@@ -37,6 +37,7 @@ async function loadUsers() {
     users.value = data
   } catch (e) {
     console.error(e)
+    ElMessage.error('加载用户列表失败')
   }
 }
 
@@ -47,6 +48,7 @@ async function loadAccess() {
     accesses.value = data
   } catch (e) {
     console.error(e)
+    ElMessage.error('加载权限列表失败')
   }
 }
 

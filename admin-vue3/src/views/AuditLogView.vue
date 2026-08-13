@@ -33,6 +33,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getAuditLogs } from '../api/audit'
+import { ElMessage } from 'element-plus'
 
 const logs = ref([])
 const filterAction = ref('')
@@ -47,6 +48,7 @@ async function load() {
     logs.value = data
   } catch (e) {
     console.error(e)
+    ElMessage.error('加载审计日志失败')
   }
 }
 

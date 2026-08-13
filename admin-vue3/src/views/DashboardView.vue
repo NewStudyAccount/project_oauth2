@@ -27,6 +27,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getStats } from '../api/audit'
+import { ElMessage } from 'element-plus'
 
 const stats = ref({ userCount: 0, clientCount: 0, auditLogCount: 0 })
 
@@ -36,6 +37,7 @@ onMounted(async () => {
     stats.value = data
   } catch (e) {
     console.error('Failed to load stats', e)
+    ElMessage.error('加载统计数据失败')
   }
 })
 </script>

@@ -29,8 +29,8 @@ spring:
     suffix: .html
     cache: false
 
-  # OAuth2 客户端配置已迁移至数据库 (oauth2_client 表)
-  # 由 DatabaseClientRepository 加载，不再使用 yml 静态配置
+  # OAuth2 客户端配置已迁移至数据库 (oauth2_registered_client 表)
+  # 由 JdbcRegisteredClientRepository 加载，不再使用 yml 静态配置
 
   mail:
     host: smtp.qq.com

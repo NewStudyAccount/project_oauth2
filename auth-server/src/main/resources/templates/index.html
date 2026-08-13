@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统一认证中心</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        .dashboard-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .dashboard-links a {
+            display: block;
+            padding: 14px 20px;
+            background: #409eff;
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 15px;
+            transition: background 0.3s;
+        }
+        .dashboard-links a:hover {
+            background: #66b1ff;
+        }
+        .dashboard-links a.admin-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .dashboard-links a.admin-link:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>统一认证中心</h1>
+            <p th:if="${username}" th:text="'欢迎, ' + ${username}">欢迎</p>
+            <p th:unless="${username}">SSO 单点登录平台</p>
+        </div>
+
+        <div class="dashboard-links">
+            <a class="admin-link" href="http://auth.local:5174">管理后台</a>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="btn btn-primary" style="width:100%;margin-top:0;">退出登录</button>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>
