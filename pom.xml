@@ -25,10 +25,10 @@
     </properties>
 
     <modules>
-        <module>gateway</module>
-        <module>auth-server</module>
-        <module>app-springboot</module>
-        <module>resource-api</module>
+        <module>auth-center/backend</module>
+        <module>client-app/backend</module>
+        <module>platform/gateway</module>
+        <module>platform/resource-api</module>
     </modules>
 
     <dependencyManagement>

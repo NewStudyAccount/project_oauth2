@@ -74,9 +74,9 @@
 
 ## 10. 登录页美化（Thymeleaf，对齐 Element Plus 视觉风格）
 
-- [x] 10.1 美化 login.html，配色、字体、按钮风格对齐 Element Plus（主色 #409eff、圆角、阴影）
-- [x] 10.2 添加 OAuth2 授权流程中的 consent 页面（如不存在则创建），同样对齐 Element Plus 风格
-- [x] 10.3 确保登录页在 OAuth2 授权流程和管理后台登录两个场景下都正常工作
+- [ ] 10.1 美化 login.html，配色、字体、按钮风格对齐 Element Plus（主色 #409eff、圆角、阴影）
+- [ ] 10.2 添加 OAuth2 授权流程中的 consent 页面（如不存在则创建），同样对齐 Element Plus 风格
+- [ ] 10.3 确保登录页在 OAuth2 授权流程和管理后台登录两个场景下都正常工作
 
 ## 11. 集成验证
 
