@@ -1,96 +1,152 @@
-# AGENTS.md
+# AGENTS.md — project_oauth2
 
-## Project Overview
+## Project overview
 
-OAuth2/OIDC SSO platform built with Spring Authorization Server. Four independent modules (no shared parent POM), each with its own `pom.xml` or `package.json`.
+OAuth2/OIDC SSO platform built on Spring Authorization Server. A Maven multi-module monorepo with 4 backend modules and 3 independent frontend apps.
 
-## Prerequisites
+## Architecture at a glance
 
-- **Java 21** (all Spring modules target `<java.version>21</java.version>`)
-- **MySQL 8.0+** at `192.168.99.100:3306` (Docker default; change in `auth-server/src/main/resources/application.yml`)
-- **Redis** at `192.168.99.100:6379` (database 12)
-- **hosts entry**: `127.0.0.1 auth.local` — required for OAuth2 issuer URI validation
+| Module | Path | Port | Domain | Role |
+|--------|------|------|--------|------|
+| auth-server | auth-center/backend | 9000 | auth.local | Authorization Server (core) |
+| admin-vue3 | auth-center/auth-server-frontend | 5174 | auth.local | Admin panel (Vue3+ElementPlus, Session auth) |
+| app-springboot | client-app/backend | 8082 | client.a.local | Confidential OAuth2 Client + Resource Server |
+| app-vue3-springboot | client-app/app-frontend | 5173 | client.a.local | Frontend for app-springboot (proxied) |
+| app-vue | standalone-app/frontend | 5173 | client.b.local | Public Client (PKCE, self-manages tokens) |
+| gateway | platform/gateway | 8080 | gateway.local | Spring Cloud Gateway + Token Relay |
+| resource-api | platform/resource-api | 8083 | — | Pure Resource Server (JWT) |
 
-## Module Layout
+## Required hosts entries
 
-| Module | Port | Role | Build |
-|--------|------|------|-------|
-| `auth-server/` | 9000 | Authorization Server (core) | `mvn spring-boot:run` |
-| `app-vue/` | 5173 | Vue SPA (public client, PKCE) | `npm run dev` |
-| `app-springboot/` | 8082 | Spring Boot app (confidential client) | `mvn spring-boot:run` |
-| `resource-api/` | 8083 | Resource server (JWT validation) | `mvn spring-boot:run` |
-
-**Start order**: `auth-server` first — all other modules depend on it for token issuance and JWKS.
-
-## Build & Run Commands
-
-```bash
-# Auth Server (must be running before other modules)
-cd auth-server && mvn spring-boot:run
-
-# Vue frontend
-cd app-vue && npm install && npm run dev
-
-# Spring Boot client app
-cd app-springboot && mvn spring-boot:run
-
-# Resource API server
-cd resource-api && mvn spring-boot:run
+```
+127.0.0.1  auth.local
+127.0.0.1  client.a.local
+127.0.0.1  client.b.local
+127.0.0.1  gateway.local
 ```
 
-No test infrastructure exists yet (`src/test/` directories are empty or absent).
+## Infrastructure (docker-compose)
 
-## Database
+All infra lives in `infra/docker-compose.yml`. Default credentials: root/123456.
 
-- Schema: `oauth2_center` (auto-created by `schema.sql`)
-- Init scripts: `auth-server/src/main/resources/db/schema.sql` + `data.sql`
-- Runs automatically on auth-server startup if MySQL is available
-- Default admin: `admin` / `Admin@123` (BCrypt hashed in `data.sql`)
+| Service | Port | Notes |
+|---------|------|-------|
+| MySQL 8.0 | 3306 | DB: oauth2_center |
+| Redis 7 | 6379 | password: 123456, db 12 used by auth-server and gateway |
+| Nacos 2.3.2 | 8848 | Service discovery for gateway + resource-api |
 
-## Architecture Notes
+Start infra first: `docker compose -f infra/docker-compose.yml up -d`
 
-### Package Structure (auth-server)
-- `com.example.authserver.config/` — Spring Security + Authorization Server config
-- `com.example.authserver.entity/` — MyBatis-Plus entities (Lombok `@Data`)
-- `com.example.authserver.repository/` — MyBatis mappers (scanned via `@MapperScan`)
-- `com.example.authserver.service/` — Business logic
-- `com.example.authserver.controller/` — REST + page controllers
+## Build and run commands
 
-### Security Filter Chains
-- `AuthorizationServerConfig` — `@Order(1)`: handles `/oauth2/*`, OIDC discovery, JWKS
-- `SecurityConfig` — `@Order(2)`: form login, page auth, CSRF config
-- CSRF disabled for `/api/**` and `/oauth2/**` paths
+### Backend (Maven, Java 21)
 
-### JWT Keys
-RSA keypair generated at startup in `AuthorizationServerConfig.keyPair()` — not persisted. Restarting auth-server invalidates all existing tokens.
+```bash
+# From repo root — build all modules
+mvn clean package -DskipTests
 
-### Vue App Proxy
-`vite.config.ts` proxies `/userinfo` requests to `http://auth.local:9000`. The Vue app uses PKCE flow with `client_id: vue-app` (no client secret).
+# Run individual modules
+cd auth-center/backend && mvn spring-boot:run
+cd client-app/backend && mvn spring-boot:run
+cd platform/gateway && mvn spring-boot:run
+cd platform/resource-api && mvn spring-boot:run
+```
 
-### MyBatis-Plus Config
+### Frontend (Node/npm)
+
+```bash
+# Each frontend is independent — always npm install first
+cd auth-center/auth-server-frontend && npm install && npm run dev
+cd client-app/app-frontend && npm install && npm run dev
+cd standalone-app/frontend && npm install && npm run dev
+```
+
+## Critical implementation details
+
+### OAuth2 clients are stored in the database, not config
+
+Client configs live in `oauth2_registered_client` table, loaded by `JdbcRegisteredClientRepository`. The yml files contain zero client definitions — they were migrated to DB. To add a client, use the admin API (`POST /api/admin/clients`) or insert directly into the table.
+
+### EnabledCheckingRegisteredClientRepository
+
+`auth-center/backend/.../config/EnabledCheckingRegisteredClientRepository.java` wraps the standard repository. It checks `settings.client.enabled` in client settings — disabled clients return `null` (appear nonexistent to OAuth2 flows). This is NOT a Spring Authorization Server built-in; it's custom.
+
+### Two security filter chains, ordered
+
+1. `@Order(1)` — `authServerFilterChain`: OAuth2 endpoints (/oauth2/authorize, /token, /jwks, OIDC)
+2. `@Order(2)` — `defaultFilterChain`: form login, API auth, everything else
+
+CSRF is disabled for `/api/**` and `/oauth2/**`. API 401s return JSON; page 401s redirect to /login.
+
+### Gateway is WebFlux — no spring-boot-starter-web
+
+`platform/gateway` uses Spring Cloud Gateway (reactive). Never add `spring-boot-starter-web` to it — it will fail to start. The gateway uses Redis for distributed sessions and Nacos for service discovery routing (`lb://service-name`).
+
+### Nacos is partially disabled
+
+Auth-server's Nacos dependency is commented out in its pom.xml. Only gateway and resource-api register with Nacos. Auth-server is addressed directly by domain.
+
+### JWK keys are generated at startup
+
+RSA 2048-bit keypair is generated fresh each restart of auth-server. All previously issued JWTs become invalid on restart. This is fine for dev but would be a problem in production.
+
+### MyBatis-Plus conventions
+
 - Underscore-to-camelCase mapping enabled
-- Logical delete: `deleted` field (1=deleted, 0=active)
+- Logical delete: `deleted` field (1=deleted, 0=not)
 - ID strategy: auto-increment
+- SQL init is commented out by default in application.yml — run schema.sql manually
 
-## Conventions
+## Database schema
 
-- All Spring modules use Lombok (`@RequiredArgsConstructor`, `@Data`, etc.)
-- Entity classes use MyBatis-Plus annotations, not JPA
-- Thymeleaf templates in `src/main/resources/templates/` (auth-server, app-springboot)
-- Vue app stores auth state in localStorage (tokens, user info)
+SQL files in `auth-center/backend/src/main/resources/db/`:
+- `schema.sql` — full DDL (run first)
+- `data.sql` — seed data (test accounts)
+- Various `fix-password-*.sql` — password migration scripts
 
-## Key Files
+Key tables: `sys_user`, `oauth2_registered_client`, `oauth2_authorization`, `user_client_access`, `sys_audit_log`
 
-- `auth-server/src/main/java/.../config/AuthorizationServerConfig.java` — OAuth2/OIDC core config
-- `auth-server/src/main/java/.../config/SecurityConfig.java` — Security filter chains
-- `auth-server/src/main/resources/db/schema.sql` — Full database schema
-- `auth-server/src/main/resources/db/data.sql` — Initial clients + admin user
-- `app-vue/src/utils/auth.js` — PKCE + token exchange logic
-- `app-vue/vite.config.ts` — Dev server proxy config
+## Frontend architecture notes
 
-## Gotchas
+### admin-vue3 (auth-server-frontend)
 
-- The issuer URI `http://auth.local:9000` is hardcoded in multiple places (`application.yml`, `AuthorizationServerConfig.java`, Vue `auth.js`) — must match across all modules
-- `springboot-app` client secret in `data.sql` is `Admin@123` (same as admin password, BCrypt hashed)
-- No `mvnw`/`gradlew` wrappers — requires system Maven
-- Redis database 12 is hardcoded in `application.yml`
+- TypeScript (`tsconfig.json` present), Vue3 + Element Plus + Vue Router
+- Vite proxies `/api`, `/login`, `/logout`, `/register`, `/consent`, `/send-code` to auth.local:9000
+- Uses Session+Cookie auth (axios withCredentials), NOT OAuth2
+- API layer in `src/api/` with separate files per domain (client.js, user.js, access.js, audit.js)
+
+### app-vue3-springboot (client-app/app-frontend)
+
+- Plain JS, Vue3, no TypeScript
+- Proxies `/api`, `/oauth2`, `/login`, `/logout` to client.a.local:8082
+- CSRF: reads XSRF-TOKEN cookie, sends as X-XSRF-TOKEN header
+
+### app-vue (standalone-app/frontend)
+
+- Vue3 + Pinia, no TypeScript
+- PKCE flow: generates code_verifier/code_challenge, stores tokens in localStorage
+- Only proxies `/userinfo` to auth.local:9000
+
+## Port conflicts
+
+Both `client-app/app-frontend` and `standalone-app/frontend` default to port 5173. They cannot run simultaneously without changing one vite config.
+
+## Test account
+
+| Username | Password | Role |
+|----------|----------|------|
+| admin | Admin@123 | ADMIN (full access to admin API) |
+
+## Conventions that differ from defaults
+
+- The admin API path is `/api/admin/**` (not `/admin/api/**`)
+- Client IDs in the OAuth2 flow map to `oauth2_registered_client.id` (a UUID), NOT `client_id` (the string identifier). The `AdminController.findAllClientIds()` queries `id` column.
+- `ClientConverter` in `auth-center/backend/.../dto/` handles all DTO↔entity mapping for RegisteredClient. It encodes client secrets via PasswordEncoder.
+- Consent page is at `/consent` (Thymeleaf template), not a SPA route.
+
+## Existing instruction files
+
+- `architecture.md` — detailed architecture doc with all interaction flows
+- `docs/` — additional analysis docs (auth-server-core-analysis, storage-extension, spring-cloud)
+- `openspec/` — OpenSpec change management config
+- `.agents/skills/` — OpenSpec skill definitions
