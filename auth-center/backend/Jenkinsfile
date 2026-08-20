@@ -19,10 +19,17 @@ pipeline {
         stage('Maven Build') {
             steps {
                 sh '''
+                    echo "=== Current directory ==="
+                    pwd
+                    echo "=== Listing files ==="
+                    ls -la
+                    echo "=== Checking pom.xml ==="
+                    ls -la auth-center/backend/pom.xml
+                    echo "=== Running Maven build ==="
                     docker run --rm \
-                        -v "$(pwd)":/app \
+                        -v "$(pwd)":/workspace \
                         -v "$HOME/.m2":/root/.m2 \
-                        -w /app/auth-center/backend \
+                        -w /workspace/auth-center/backend \
                         maven:3.9-eclipse-temurin-21 \
                         mvn clean package -DskipTests -B
                 '''
