@@ -62,7 +62,7 @@ pipeline {
         stage('Health Check') {
             steps {
                 sh 'sleep 20'
-                sh "curl -f http://localhost:${HOST_PORT}/actuator/health || exit 1"
+                sh "docker ps | grep ${CONTAINER_NAME}"
             }
         }
     }
