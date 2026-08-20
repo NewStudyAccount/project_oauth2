@@ -3,19 +3,6 @@
 CREATE DATABASE IF NOT EXISTS oauth2_center DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE oauth2_center;
 
--- 用户表
-CREATE TABLE IF NOT EXISTS sys_user (
-    id          BIGINT PRIMARY KEY AUTO_INCREMENT,
-    username    VARCHAR(50)  NOT NULL UNIQUE,
-    password    VARCHAR(200) NOT NULL,
-    nickname    VARCHAR(50),
-    email       VARCHAR(100),
-    phone       VARCHAR(20),
-    status      TINYINT DEFAULT 1 COMMENT '1:正常 0:禁用',
-    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统用户表';
-
 -- 用户-系统访问权限表
 CREATE TABLE IF NOT EXISTS user_client_access (
     id          BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -56,16 +43,6 @@ CREATE TABLE IF NOT EXISTS sys_audit_log (
     INDEX idx_action (action),
     INDEX idx_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='审计日志表';
-
--- 授权确认记录（第三方应用）
-CREATE TABLE IF NOT EXISTS user_client_consent (
-    id          BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id     BIGINT NOT NULL,
-    client_id   VARCHAR(100) NOT NULL,
-    scopes      VARCHAR(500),
-    consented_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uk_user_client (user_id, client_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户授权确认记录';
 
 -- Webhook 订阅表
 CREATE TABLE IF NOT EXISTS webhook_subscriber (

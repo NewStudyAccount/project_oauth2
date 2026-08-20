@@ -1,7 +1,6 @@
 package com.example.authserver.config;
 
 import com.example.authserver.dto.UserDTO;
-import com.example.authserver.entity.SysUser;
 import com.example.authserver.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

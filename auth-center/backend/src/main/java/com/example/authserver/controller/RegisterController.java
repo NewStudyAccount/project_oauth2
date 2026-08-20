@@ -1,7 +1,6 @@
 package com.example.authserver.controller;
 
 import com.example.authserver.dto.UserDTO;
-import com.example.authserver.entity.SysUser;
 import com.example.authserver.service.AuditLogService;
 import com.example.authserver.service.RegisterService;
 import jakarta.servlet.http.HttpServletRequest;

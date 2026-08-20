@@ -2,11 +2,6 @@
 
 USE oauth2_center;
 
--- 默认管理员 (密码: Admin@123, BCrypt加密)
-INSERT INTO sys_user (username, password, nickname, email, status)
-VALUES ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '系统管理员', 'admin@example.com', 1)
-ON DUPLICATE KEY UPDATE username=username;
-
 -- 内部应用: Vue SPA (公开客户端, PKCE)
 INSERT INTO oauth2_registered_client (id, client_id, client_name, client_authentication_methods, authorization_grant_types, redirect_uris, scopes, client_settings, token_settings)
 VALUES (
