@@ -1,10 +1,8 @@
-# 注意：此文件已合并到项目根目录的 docker-compose.yml
-# 请使用根目录的 docker-compose.yml 启动基础设施
-# 命令：docker-compose up -d (在项目根目录执行)
-
 version: '3.8'
 
 services:
+  # ========== 基础设施 ==========
+
   mysql:
     image: mysql:8.0
     container_name: oauth2-mysql
@@ -18,6 +16,14 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - oauth2-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -27,6 +33,14 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
+    networks:
+      - oauth2-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "123456", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   nacos:
     image: nacos/nacos-server:v2.3.2-slim
@@ -47,8 +61,30 @@ services:
       - "8848:8848"
       - "9848:9848"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+    networks:
+      - oauth2-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ========== 后端服务（由 Jenkins Pipeline 独立部署） ==========
+  # 这里不定义后端服务，它们通过各自的 Jenkinsfile 独立构建和部署
+  #
+  # 部署顺序：
+  #   1. 先启动基础设施: docker-compose up -d
+  #   2. 等待 Nacos 就绪后，部署后端服务（顺序无关，可并行）
+  #   3. 最后部署前端服务
 
 volumes:
   mysql-data:
   redis-data:
+
+networks:
+  oauth2-net:
+    driver: bridge

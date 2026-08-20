@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'oauth2-app-ui'
+        CONTAINER_NAME = 'oauth2-app-ui'
+        HOST_PORT = '8084'
+        CONTAINER_PORT = '80'
+        NETWORK = 'oauth2-net'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('npm Build') {
+            steps {
+                dir('client-app/app-frontend') {
+                    sh 'npm ci'
+                    sh 'npm run build'
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                script {
+                    def imageTag = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
+                    sh "docker build -t ${imageTag} -f client-app/app-frontend/Dockerfile client-app/app-frontend"
+                    sh "docker tag ${imageTag} ${IMAGE_NAME}:latest"
+                }
+            }
+        }
+
+        stage('Stop Old Container') {
+            steps {
+                sh "docker stop ${CONTAINER_NAME} || true"
+                sh "docker rm ${CONTAINER_NAME} || true"
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                sh """
+                    docker run -d \
+                        --name ${CONTAINER_NAME} \
+                        --network ${NETWORK} \
+                        -p ${HOST_PORT}:${CONTAINER_PORT} \
+                        --restart unless-stopped \
+                        ${IMAGE_NAME}:latest
+                """
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh 'sleep 5'
+                sh "curl -f http://localhost:${HOST_PORT} || exit 1"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ ${CONTAINER_NAME} deployed successfully!"
+        }
+        failure {
+            echo "❌ ${CONTAINER_NAME} deployment failed!"
+            sh "docker logs ${CONTAINER_NAME} || true"
+        }
+    }
+}

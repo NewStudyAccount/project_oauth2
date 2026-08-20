@@ -1,0 +1,74 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'oauth2-gateway'
+        CONTAINER_NAME = 'oauth2-gateway'
+        HOST_PORT = '8080'
+        CONTAINER_PORT = '8080'
+        NETWORK = 'oauth2-net'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Maven Build') {
+            steps {
+                dir('.') {
+                    sh 'mvn clean package -DskipTests -B -pl platform/gateway'
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                script {
+                    def imageTag = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
+                    sh "docker build -t ${imageTag} -f platform/gateway/Dockerfile ."
+                    sh "docker tag ${imageTag} ${IMAGE_NAME}:latest"
+                }
+            }
+        }
+
+        stage('Stop Old Container') {
+            steps {
+                sh "docker stop ${CONTAINER_NAME} || true"
+                sh "docker rm ${CONTAINER_NAME} || true"
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                sh """
+                    docker run -d \
+                        --name ${CONTAINER_NAME} \
+                        --network ${NETWORK} \
+                        -p ${HOST_PORT}:${CONTAINER_PORT} \
+                        --restart unless-stopped \
+                        ${IMAGE_NAME}:latest
+                """
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh 'sleep 20'
+                sh "curl -f http://localhost:${HOST_PORT}/actuator/health || exit 1"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ ${CONTAINER_NAME} deployed successfully!"
+        }
+        failure {
+            echo "❌ ${CONTAINER_NAME} deployment failed!"
+            sh "docker logs ${CONTAINER_NAME} || true"
+        }
+    }
+}

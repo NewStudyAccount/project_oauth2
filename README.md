@@ -309,6 +309,93 @@ cd standalone-app/frontend && npm install && npm run dev
 
 ---
 
+## Jenkins + Docker 部署
+
+### 前置条件
+
+- Jenkins 已安装并配置好 Maven、Node.js、Docker 工具
+- 目标服务器已安装 Docker 并创建 `oauth2-net` 网络
+- Git 仓库已配置在 Jenkins 中
+
+### 创建 Docker 网络
+
+```bash
+docker network create oauth2-net
+```
+
+### 部署步骤
+
+#### 1. 启动基础设施
+
+```bash
+# 在项目根目录执行
+docker-compose up -d
+```
+
+等待 MySQL、Redis、Nacos 启动完成（约 30 秒）。
+
+#### 2. 初始化数据库
+
+```bash
+# 执行 auth-center 的 schema.sql 和 data.sql
+mysql -h <服务器IP> -u root -p123456 < auth-center/backend/src/main/resources/db/schema.sql
+mysql -h <服务器IP> -u root -p123456 < auth-center/backend/src/main/resources/db/data.sql
+
+# 执行 user-service 的 schema.sql
+mysql -h <服务器IP> -u root -p123456 < platform/user-service/src/main/resources/db/schema.sql
+```
+
+#### 3. 部署后端服务（通过 Jenkins）
+
+在 Jenkins 中为每个服务创建 Pipeline 项目：
+
+| 服务 | Jenkinsfile 路径 | 容器名 | 端口 |
+|------|-----------------|--------|------|
+| gateway | `platform/gateway/Jenkinsfile` | oauth2-gateway | 8080 |
+| user-service | `platform/user-service/Jenkinsfile` | oauth2-user | 8081 |
+| client-app 后端 | `client-app/backend/Jenkinsfile` | oauth2-client | 8082 |
+| resource-api | `platform/resource-api/Jenkinsfile` | oauth2-resource | 8083 |
+| auth-server | `auth-center/backend/Jenkinsfile` | oauth2-auth | 9000 |
+
+每个 Pipeline 执行：Checkout → Maven Build → Docker Build → Stop Old → Run New → Health Check
+
+#### 4. 部署前端（通过 Jenkins）
+
+| 服务 | Jenkinsfile 路径 | 容器名 | 端口 |
+|------|-----------------|--------|------|
+| auth 前端 | `auth-center/auth-server-frontend/Jenkinsfile` | oauth2-auth-ui | 80 |
+| app 前端 | `client-app/app-frontend/Jenkinsfile` | oauth2-app-ui | 8084 |
+
+#### 5. 访问服务
+
+| 服务 | 访问地址 |
+|------|---------|
+| auth 前端 | http://<服务器IP> |
+| app 前端 | http://<服务器IP>:8084 |
+| Gateway | http://<服务器IP>:8080 |
+| Nacos 控制台 | http://<服务器IP>:8848/nacos |
+
+### 容器管理命令
+
+```bash
+# 查看所有容器
+docker ps -a
+
+# 查看容器日志
+docker logs -f oauth2-auth
+
+# 重启容器
+docker restart oauth2-auth
+
+# 停止所有服务
+docker stop oauth2-auth oauth2-user oauth2-gateway oauth2-client oauth2-resource oauth2-auth-ui oauth2-app-ui
+
+# 启动基础设施
+docker-compose up -d
+```
+
+---
+
 ## OAuth2 客户端配置
 
 所有客户端配置存储在数据库 `oauth2_registered_client` 表中：
