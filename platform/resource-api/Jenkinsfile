@@ -18,9 +18,14 @@ pipeline {
 
         stage('Maven Build') {
             steps {
-                dir('.') {
-                    sh 'mvn clean package -DskipTests -B -pl platform/resource-api'
-                }
+                sh '''
+                    docker run --rm \
+                        -v "$(pwd)":/app \
+                        -v "$HOME/.m2":/root/.m2 \
+                        -w /app \
+                        maven:3.9-eclipse-temurin-21 \
+                        mvn clean package -DskipTests -B -pl platform/resource-api
+                '''
             }
         }
 
