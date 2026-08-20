@@ -1,42 +1,53 @@
+# ==================== 服务器配置 ====================
 server:
-  port: 9000
+  port: 9000  # 授权服务器端口，客户端通过 http://auth.local:9000 访问
 
 spring:
   application:
     name: auth-server
 
+  # ==================== 数据源配置（MySQL） ====================
+  # 存储：OAuth2 客户端、授权记录、用户信息、Token 黑名单等
   datasource:
     url: jdbc:mysql://192.168.99.100:3306/oauth2_center?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+# 数据库初始化（首次运行时取消注释，执行 schema.sql 和 data.sql）
 #  sql:
 #    init:
 #      mode: always
 #      schema-locations: classpath:db/schema.sql
 #      data-locations: classpath:db/data.sql
 
+  # ==================== Redis 配置 ====================
+  # 用途：验证码缓存、IP 限流、Token 黑名单缓存
   data:
     redis:
       host: 192.168.99.100
       port: 6379
-      database: 12
+      database: 12       # 使用独立数据库编号，避免与其他应用冲突
       password: 123456
 
+  # ==================== Thymeleaf 模板引擎 ====================
+  # 用于渲染登录页、注册页、授权同意页等服务端页面
   thymeleaf:
     prefix: classpath:/templates/
     suffix: .html
-    cache: false
+    cache: false  # 开发环境关闭缓存，生产环境应设为 true
 
-  # OAuth2 客户端配置已迁移至数据库 (oauth2_registered_client 表)
+  # ==================== OAuth2 客户端配置 ====================
+  # 已迁移至数据库 (oauth2_registered_client 表)
   # 由 JdbcRegisteredClientRepository 加载，不再使用 yml 静态配置
+  # 管理员通过 /api/admin/clients 接口管理客户端
 
+  # ==================== 邮件配置（注册验证码） ====================
   mail:
     host: smtp.qq.com
     port: 587
-    username: your-email@qq.com
-    password: your-smtp-password
+    username: your-email@qq.com       # 替换为实际邮箱
+    password: your-smtp-password      # 替换为 SMTP 授权码（非邮箱密码）
     properties:
       mail:
         smtp:
@@ -44,18 +55,24 @@ spring:
           starttls:
             enable: true
 
+# ==================== MyBatis-Plus 配置 ====================
 mybatis-plus:
   configuration:
-    map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true  # 数据库下划线命名自动映射 Java 驼峰命名
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 打印 SQL 日志（生产环境关闭）
   global-config:
     db-config:
-      id-type: auto
-      logic-delete-field: deleted
+      id-type: auto              # 主键自增
+      logic-delete-field: deleted  # 逻辑删除字段
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+# ==================== 日志配置 ====================
 logging:
   level:
-    com.example.authserver: DEBUG
-    org.springframework.security: DEBUG
+    com.example.authserver: DEBUG          # 应用日志级别
+    org.springframework.security: DEBUG    # Spring Security 日志（查看认证/授权细节）
+
+# ==================== 用户中心服务配置 ====================
+user-service:
+  url: http://localhost:8081  # user-service 地址

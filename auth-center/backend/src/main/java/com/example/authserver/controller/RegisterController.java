@@ -1,5 +1,6 @@
 package com.example.authserver.controller;
 
+import com.example.authserver.dto.UserDTO;
 import com.example.authserver.entity.SysUser;
 import com.example.authserver.service.AuditLogService;
 import com.example.authserver.service.RegisterService;
@@ -12,6 +13,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+/**
+ * 用户注册控制器 —— 处理注册页面渲染和注册表单提交。
+ * <p>支持邮箱验证码注册，可选携带 client_id 参数实现注册后自动授权。
+ */
 @Controller
 @RequiredArgsConstructor
 public class RegisterController {
@@ -19,12 +24,14 @@ public class RegisterController {
     private final RegisterService registerService;
     private final AuditLogService auditLogService;
 
+    /** 注册页面 —— 可选携带 client_id，注册成功后自动授权该客户端 */
     @GetMapping("/register")
     public String registerPage(@RequestParam(required = false) String client_id, Model model) {
         model.addAttribute("client_id", client_id);
         return "register";
     }
 
+    /** 注册表单提交 —— 校验参数、验证码、创建用户、记录审计日志 */
     @PostMapping("/register")
     public String register(
             @RequestParam String username,
@@ -37,7 +44,7 @@ public class RegisterController {
             HttpServletRequest request,
             RedirectAttributes redirectAttributes) {
         try {
-            SysUser user = registerService.register(username, password, confirmPassword, email, code, nickname, client_id);
+            UserDTO user = registerService.register(username, password, confirmPassword, email, code, nickname, client_id);
             auditLogService.logRegister(username, "SUCCESS");
             redirectAttributes.addFlashAttribute("message", "注册成功，请登录");
             return "redirect:/login";
@@ -53,6 +60,7 @@ public class RegisterController {
         }
     }
 
+    /** 发送邮箱验证码 —— 同一 IP 每小时最多 5 次 */
     @PostMapping("/send-code")
     public String sendCode(@RequestParam String email, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         String ip = request.getRemoteAddr();

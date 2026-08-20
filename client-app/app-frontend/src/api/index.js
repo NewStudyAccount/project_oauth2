@@ -1,28 +1,31 @@
 import axios from 'axios'
+import { useAuthStore } from '../stores/auth'
 
 const api = axios.create({
   baseURL: '',
-  withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
 })
 
-// CSRF token interceptor
+// 请求拦截器：自动添加 Bearer Token
 api.interceptors.request.use(config => {
-  const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/)
-  if (match) {
-    config.headers['X-XSRF-TOKEN'] = decodeURIComponent(match[1])
+  const token = localStorage.getItem('access_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
   }
   return config
-})
+}, error => Promise.reject(error))
 
-// 401 response interceptor
+// 响应拦截器：401 时触发登录
 api.interceptors.response.use(
   response => response,
   error => {
     if (error.response && error.response.status === 401) {
-      window.location.href = '/oauth2/authorization/springboot-app'
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      const authStore = useAuthStore()
+      authStore.login()
     }
     return Promise.reject(error)
   }

@@ -29,6 +29,7 @@
         <module>client-app/backend</module>
         <module>platform/gateway</module>
         <module>platform/resource-api</module>
+        <module>platform/user-service</module>
     </modules>
 
     <dependencyManagement>

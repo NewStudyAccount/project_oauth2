@@ -12,7 +12,7 @@
           <button @click="handleLogout" class="btn btn-logout">登出</button>
         </template>
         <template v-else>
-          <a href="/oauth2/authorization/springboot-app" class="btn btn-login">登录</a>
+          <button @click="handleLogin" class="btn btn-login">登录</button>
         </template>
       </div>
     </nav>
@@ -24,11 +24,17 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useAuthStore } from './stores/auth'
 import api from './api'
 
+const authStore = useAuthStore()
 const user = ref(null)
 
 const checkAuth = async () => {
+  if (!authStore.isAuthenticated) {
+    user.value = null
+    return
+  }
   try {
     const { data } = await api.get('/api/userinfo')
     user.value = data
@@ -37,14 +43,13 @@ const checkAuth = async () => {
   }
 }
 
-const handleLogout = async () => {
-  try {
-    await api.post('/api/logout')
-  } catch {
-    // ignore
-  }
+const handleLogin = () => {
+  authStore.login()
+}
+
+const handleLogout = () => {
   user.value = null
-  window.location.href = '/'
+  authStore.logout()
 }
 
 onMounted(checkAuth)

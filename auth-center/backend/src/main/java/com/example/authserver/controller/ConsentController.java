@@ -13,6 +13,13 @@ import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * OAuth2 授权同意页面控制器。
+ *
+ * <p>当客户端请求授权且 {@code requireAuthorizationConsent=true} 时，
+ * 授权服务器会重定向到此页面，让用户确认是否同意授予所请求的权限（scopes）。
+ * <p>用户确认后，表单提交到 Spring Authorization Server 的内置同意处理端点。
+ */
 @Controller
 public class ConsentController {
 
@@ -22,6 +29,12 @@ public class ConsentController {
         this.registeredClientRepository = registeredClientRepository;
     }
 
+    /**
+     * 展示授权同意页面。
+     *
+     * <p>接收 OAuth2 授权请求参数，将 scope 翻译为中文描述后渲染到模板。
+     * <p>用户在页面上选择同意的 scope 后，表单提交到框架的 /oauth2/authorize 端点完成授权。
+     */
     @GetMapping("/consent")
     public String consent(
             @RequestParam(OAuth2ParameterNames.CLIENT_ID) String clientId,
@@ -37,6 +50,7 @@ public class ConsentController {
             return "redirect:/error?message=客户端不存在";
         }
 
+        // 将英文 scope 名称翻译为中文描述，提升用户体验
         List<String> scopeList = Arrays.stream(scope.split(" "))
                 .map(s -> switch (s) {
                     case "openid" -> "身份标识 (openid)";
@@ -55,6 +69,6 @@ public class ConsentController {
         model.addAttribute("scope", scope);
         model.addAttribute("response_type", responseType);
 
-        return "consent";
+        return "consent";  // 渲染 consent.html 模板
     }
 }

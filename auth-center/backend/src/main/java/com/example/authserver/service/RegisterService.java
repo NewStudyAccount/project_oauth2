@@ -1,34 +1,38 @@
 package com.example.authserver.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.example.authserver.entity.SysUser;
+import com.example.authserver.client.UserServiceClient;
+import com.example.authserver.dto.UserDTO;
 import com.example.authserver.entity.UserClientAccess;
-import com.example.authserver.repository.SysUserMapper;
 import com.example.authserver.repository.UserClientAccessMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+/**
+ * 用户注册服务 —— 处理邮箱验证码注册流程。
+ *
+ * <p>流程：发送验证码 → 校验参数 → 校验验证码 → 调用 user-service 创建用户 → 自动授权（可选）。
+ * <p>使用 Redis 存储验证码（5 分钟过期）和 IP 限流计数（每小时最多 5 次）。
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RegisterService {
 
-    private final SysUserMapper sysUserMapper;
+    private final UserServiceClient userServiceClient;
     private final UserClientAccessMapper userClientAccessMapper;
-    private final PasswordEncoder passwordEncoder;
     private final StringRedisTemplate redisTemplate;
     private final MailService mailService;
 
-    private static final String CODE_KEY_PREFIX = "register:code:";
-    private static final String RATE_KEY_PREFIX = "rate:register:";
-    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$");
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$");
+    private static final String CODE_KEY_PREFIX = "register:code:";       // 验证码 Redis key 前缀
+    private static final String RATE_KEY_PREFIX = "rate:register:";       // IP 限流 Redis key 前缀
+    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$");  // 密码强度规则
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$");          // 邮箱格式
 
     /**
      * 发送验证码
@@ -58,9 +62,11 @@ public class RegisterService {
     }
 
     /**
-     * 用户注册
+     * 用户注册 —— 校验参数和验证码后，调用 user-service 创建用户。
+     *
+     * @return 注册成功的用户信息（不含密码）
      */
-    public SysUser register(String username, String password, String confirmPassword,
+    public UserDTO register(String username, String password, String confirmPassword,
                            String email, String code, String nickname, String clientId) {
         // 参数校验
         if (username == null || username.length() < 3 || username.length() > 50) {
@@ -82,32 +88,19 @@ public class RegisterService {
             throw new RuntimeException("验证码错误或已过期");
         }
 
-        // 用户名唯一性检查
-        Long count = sysUserMapper.selectCount(
-                new LambdaQueryWrapper<SysUser>()
-                        .eq(SysUser::getUsername, username)
-        );
-        if (count > 0) {
-            throw new RuntimeException("用户名已存在");
+        // 调用 user-service 创建用户（用户名/邮箱唯一性校验由 user-service 负责）
+        UserDTO user;
+        try {
+            user = userServiceClient.createUser(Map.of(
+                    "username", username,
+                    "password", password,
+                    "email", email,
+                    "nickname", nickname != null ? nickname : username
+            ));
+        } catch (Exception e) {
+            // Feign 调用失败，提取错误信息
+            throw new RuntimeException("注册失败: " + e.getMessage());
         }
-
-        // 邮箱唯一性检查
-        count = sysUserMapper.selectCount(
-                new LambdaQueryWrapper<SysUser>()
-                        .eq(SysUser::getEmail, email)
-        );
-        if (count > 0) {
-            throw new RuntimeException("邮箱已被注册");
-        }
-
-        // 创建用户
-        SysUser user = new SysUser();
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setNickname(nickname != null ? nickname : username);
-        user.setEmail(email);
-        user.setStatus(1);
-        sysUserMapper.insert(user);
 
         // 删除已使用的验证码
         redisTemplate.delete(CODE_KEY_PREFIX + email);

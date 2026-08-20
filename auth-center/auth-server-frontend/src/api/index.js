@@ -1,28 +1,35 @@
 import axios from 'axios'
-import { clearLoginCache } from '../router'
+import { useAuthStore } from '../stores/auth'
 
 const api = axios.create({
   baseURL: '',
-  withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
 })
 
-api.interceptors.response.use(
-  response => {
-    // 检测非 JSON 响应（如 Vite 代理跟随 302 返回的登录页 HTML）
-    const contentType = response.headers['content-type'] || ''
-    if (contentType.includes('text/html')) {
-      window.location.href = '/login'
-      return Promise.reject(new Error('未登录，正在跳转到登录页'))
+// 请求拦截器：自动添加 Bearer Token
+api.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
     }
-    return response
+    return config
   },
+  error => Promise.reject(error)
+)
+
+// 响应拦截器：401 时触发登录
+api.interceptors.response.use(
+  response => response,
   error => {
     if (error.response && error.response.status === 401) {
-      clearLoginCache()
-      window.location.href = '/login'
+      // Token 无效或过期，清除本地 token 并跳转登录
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      const authStore = useAuthStore()
+      authStore.login()
     }
     return Promise.reject(error)
   }

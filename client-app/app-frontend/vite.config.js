@@ -10,18 +10,6 @@ export default defineConfig({
       '/api': {
         target: 'http://client.a.local:8082',
         changeOrigin: true
-      },
-      '/oauth2': {
-        target: 'http://client.a.local:8082',
-        changeOrigin: true
-      },
-      '/login': {
-        target: 'http://client.a.local:8082',
-        changeOrigin: true
-      },
-      '/logout': {
-        target: 'http://client.a.local:8082',
-        changeOrigin: true
       }
     }
   }

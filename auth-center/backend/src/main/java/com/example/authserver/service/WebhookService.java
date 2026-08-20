@@ -25,6 +25,18 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Webhook 事件推送服务。
+ *
+ * <p>当系统发生关键事件（如用户注册、Token 签发）时，向已订阅的外部系统发送 HTTP 回调通知。
+ *
+ * <p>特性：
+ * <ul>
+ *   <li>HMAC-SHA256 签名 —— 通过 X-Webhook-Signature 头传递，接收方可用密钥验证消息真实性</li>
+ *   <li>指数退避重试 —— 失败后按 1/5/30/120 分钟间隔重试，最多 4 次</li>
+ *   <li>定时扫描重试队列 —— 每分钟检查一次待重试的 Webhook</li>
+ * </ul>
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -34,7 +46,8 @@ public class WebhookService {
     private final WebhookLogMapper logMapper;
     private final ObjectMapper objectMapper;
 
-    private static final int[] RETRY_DELAYS = {1, 5, 30, 120}; // 分钟
+    /** 重试间隔（分钟）：第1次1分钟后、第2次5分钟后、第3次30分钟后、第4次120分钟后 */
+    private static final int[] RETRY_DELAYS = {1, 5, 30, 120};
 
     /**
      * 发送 Webhook 事件

@@ -34,11 +34,11 @@
 </template>
 
 <script setup>
+import { useAuthStore } from '../stores/auth'
+
+const authStore = useAuthStore()
+
 function logout() {
-  const form = document.createElement('form')
-  form.method = 'POST'
-  form.action = '/logout'
-  document.body.appendChild(form)
-  form.submit()
+  authStore.logout()
 }
 </script>

@@ -1,12 +1,12 @@
 package com.example.authserver.controller;
 
+import com.example.authserver.client.UserServiceClient;
 import com.example.authserver.dto.ClientConverter;
 import com.example.authserver.dto.ClientDTO;
+import com.example.authserver.dto.UserDTO;
 import com.example.authserver.entity.SysAuditLog;
-import com.example.authserver.entity.SysUser;
 import com.example.authserver.entity.UserClientAccess;
 import com.example.authserver.repository.SysAuditLogMapper;
-import com.example.authserver.repository.SysUserMapper;
 import com.example.authserver.repository.UserClientAccessMapper;
 import com.example.authserver.service.AccessControlService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -21,14 +21,20 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 管理后台 API 控制器。
+ *
+ * <p>提供 OAuth2 客户端管理、用户管理、权限管理、审计日志等管理功能。
+ * <p>所有接口需要 ADMIN 角色才能访问（{@code @PreAuthorize("hasRole('ADMIN')")})。
+ */
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('ADMIN')")  // 类级别权限控制：所有接口都需要 ADMIN 角色
 public class AdminController {
 
     private final RegisteredClientRepository registeredClientRepository;
-    private final SysUserMapper sysUserMapper;
+    private final UserServiceClient userServiceClient;
     private final UserClientAccessMapper userClientAccessMapper;
     private final SysAuditLogMapper auditLogMapper;
     private final AccessControlService accessControlService;
@@ -111,27 +117,22 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("message", enabled ? "客户端已启用" : "客户端已禁用"));
     }
 
-    // ==================== 用户管理 ====================
+    // ==================== 用户管理（通过 user-service） ====================
 
     @GetMapping("/users")
-    public List<SysUser> listUsers() {
-        return sysUserMapper.selectList(null);
+    public List<UserDTO> listUsers() {
+        return userServiceClient.getUsers();
     }
 
     @PutMapping("/users/{id}/status")
     public ResponseEntity<Map<String, String>> setUserStatus(@PathVariable Long id,
                                                               @RequestBody Map<String, Boolean> body) {
-        SysUser user = sysUserMapper.selectById(id);
-        if (user == null) {
-            return ResponseEntity.notFound().build();
-        }
         Boolean enabled = body.get("enabled");
         if (enabled == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "参数不完整"));
         }
-        user.setStatus(enabled ? 1 : 0);
-        sysUserMapper.updateById(user);
-        return ResponseEntity.ok(Map.of("message", enabled ? "用户已启用" : "用户已禁用"));
+        Map<String, String> result = userServiceClient.updateUserStatus(id, Map.of("enabled", enabled));
+        return ResponseEntity.ok(result);
     }
 
     // ==================== 权限管理 ====================
@@ -180,7 +181,7 @@ public class AdminController {
     @GetMapping("/stats")
     public Map<String, Object> getStats() {
         return Map.of(
-                "userCount", sysUserMapper.selectCount(null),
+                "userCount", userServiceClient.getUsers().size(),
                 "clientCount", findAllClientIds().size(),
                 "auditLogCount", auditLogMapper.selectCount(null)
         );

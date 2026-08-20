@@ -5,29 +5,19 @@ spring:
   application:
     name: app-springboot
 
-  # OAuth2 配置
+  # ==================== OAuth2 Resource Server 配置 ====================
+  # 后端仅作为 Resource Server，校验前端传递的 JWT Bearer Token
   security:
     oauth2:
-      # Resource Server (验证 JWT Bearer Token)
       resourceserver:
         jwt:
           issuer-uri: http://auth.local:9000
-      # OAuth2 Client (登录获取 Token)
-      client:
-        registration:
-          springboot-app:
-            client-id: springboot-app
-            client-secret: "Admin@123"
-            scope: openid,profile,email
-            authorization-grant-type: authorization_code
-            #重定向地址（前后端共用 client.a.local 域名）
-            redirect-uri: "http://client.a.local:8082/login/oauth2/code/springboot-app"
-            client-authentication-method: client_secret_basic
-        provider:
-          springboot-app:
-            issuer-uri: http://auth.local:9000
 
 logging:
   level:
     com.example.appspringboot: DEBUG
     org.springframework.security: DEBUG
+
+# ==================== 用户中心服务配置 ====================
+user-service:
+  url: http://localhost:8081  # user-service 地址
