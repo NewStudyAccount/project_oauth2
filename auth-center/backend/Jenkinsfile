@@ -18,7 +18,14 @@ pipeline {
 
         stage('Maven Build') {
             steps {
-                sh 'cd auth-center/backend && mvn clean package -DskipTests -B'
+                sh '''
+                    docker run --rm \
+                        -v "$(pwd)":/app \
+                        -v "$HOME/.m2":/root/.m2 \
+                        -w /app/auth-center/backend \
+                        maven:3.9-eclipse-temurin-21 \
+                        mvn clean package -DskipTests -B
+                '''
             }
         }
 

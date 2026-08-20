@@ -18,7 +18,13 @@ pipeline {
 
         stage('npm Build') {
             steps {
-                sh 'cd client-app/app-frontend && npm ci && npm run build'
+                sh '''
+                    docker run --rm \
+                        -v "$(pwd)/client-app/app-frontend":/app \
+                        -w /app \
+                        node:20-alpine \
+                        sh -c "npm ci && npm run build"
+                '''
             }
         }
 
