@@ -1,15 +1,13 @@
 # ---- Build Stage ----
 FROM maven:3.9-eclipse-temurin-21 AS build
-WORKDIR /app
 
-# 复制父 pom 和当前模块 pom，利用 Docker 缓存依赖
-COPY pom.xml .
-COPY platform/gateway/pom.xml ./platform/gateway/pom.xml
-RUN mvn dependency:go-offline -B -pl gateway
+# 复制整个项目（Maven 需要父 pom）
+WORKDIR /project
+COPY . .
 
-# 复制源码并构建
-COPY platform/gateway/src ./platform/gateway/src
-RUN mvn clean package -DskipTests -B -pl gateway
+# 在模块目录下构建
+WORKDIR /project/platform/gateway
+RUN mvn clean package -DskipTests -B
 
 # ---- Runtime Stage ----
 FROM eclipse-temurin:21-jre-alpine
