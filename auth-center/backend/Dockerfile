@@ -5,11 +5,11 @@ WORKDIR /app
 # 复制父 pom 和当前模块 pom，利用 Docker 缓存依赖
 COPY pom.xml .
 COPY auth-center/backend/pom.xml ./auth-center/backend/pom.xml
-RUN mvn dependency:go-offline -B -pl auth-center/backend
+RUN mvn dependency:go-offline -B -pl auth-server
 
 # 复制源码并构建
 COPY auth-center/backend/src ./auth-center/backend/src
-RUN mvn clean package -DskipTests -B -pl auth-center/backend
+RUN mvn clean package -DskipTests -B -pl auth-server
 
 # ---- Runtime Stage ----
 FROM eclipse-temurin:21-jre-alpine
