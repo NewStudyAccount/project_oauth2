@@ -13,7 +13,7 @@ RUN mvn clean package -DskipTests -B
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-COPY --from=build /app/platform/user-service/target/*.jar app.jar
+COPY --from=build /project/platform/user-service/target/*.jar app.jar
 
 EXPOSE 8081
 
