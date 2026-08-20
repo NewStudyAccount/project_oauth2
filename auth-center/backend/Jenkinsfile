@@ -6,7 +6,7 @@ pipeline {
         CONTAINER_NAME = 'oauth2-auth'
         HOST_PORT = '9000'
         CONTAINER_PORT = '9000'
-        NETWORK = 'oauth2-net'
+        NETWORK = '1panel-network'
     }
 
     stages {
