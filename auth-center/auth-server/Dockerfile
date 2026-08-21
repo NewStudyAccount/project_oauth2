@@ -6,15 +6,15 @@ WORKDIR /project
 COPY . .
 
 # 在模块目录下构建
-WORKDIR /project/client-app/backend
+WORKDIR /project/auth-center/auth-server
 RUN mvn clean package -DskipTests -B
 
 # ---- Runtime Stage ----
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-COPY --from=build /project/client-app/backend/target/*.jar app.jar
+COPY --from=build /project/auth-center/auth-server/target/*.jar app.jar
 
-EXPOSE 8082
+EXPOSE 9000
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

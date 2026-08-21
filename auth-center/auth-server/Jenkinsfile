@@ -22,7 +22,7 @@ pipeline {
                     docker run --rm \
                         -v "$(pwd)":/app \
                         -v "/var/lib/jenkins/.m2":/root/.m2 \
-                        -w /app/auth-center/backend \
+                        -w /app/auth-center/auth-server \
                         maven:3.9-eclipse-temurin-21 \
                         mvn clean package -DskipTests -B
                 '''
@@ -33,7 +33,7 @@ pipeline {
             steps {
                 script {
                     def imageTag = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
-                    sh "docker build -t ${imageTag} -f auth-center/backend/Dockerfile ."
+                    sh "docker build -t ${imageTag} -f auth-center/auth-server/Dockerfile ."
                     sh "docker tag ${imageTag} ${IMAGE_NAME}:latest"
                 }
             }

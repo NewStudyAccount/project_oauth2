@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: app-springboot
+    name: client-app
 
   # ==================== OAuth2 Resource Server 配置 ====================
   # 后端仅作为 Resource Server，校验前端传递的 JWT Bearer Token

@@ -11,7 +11,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>app-springboot</artifactId>
+    <artifactId>client-app</artifactId>
     <name>app-springboot</name>
     <description>Spring Boot OAuth2 Client Application</description>
 

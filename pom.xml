@@ -25,8 +25,8 @@
     </properties>
 
     <modules>
-        <module>auth-center/backend</module>
-        <module>client-app/backend</module>
+        <module>auth-center/auth-server</module>
+        <module>client-app/client-app</module>
         <module>platform/gateway</module>
         <module>platform/resource-api</module>
         <module>platform/user-service</module>

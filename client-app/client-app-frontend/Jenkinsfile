@@ -20,7 +20,7 @@ pipeline {
             steps {
                 sh '''
                     docker run --rm \
-                        -v "$(pwd)/client-app/app-frontend":/app \
+                        -v "$(pwd)/client-app/client-app-frontend":/app \
                         -w /app \
                         node:20-alpine \
                         sh -c "npm ci && npm run build"
@@ -32,7 +32,7 @@ pipeline {
             steps {
                 script {
                     def imageTag = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
-                    sh "docker build -t ${imageTag} -f client-app/app-frontend/Dockerfile client-app/app-frontend"
+                    sh "docker build -t ${imageTag} -f client-app/client-app-frontend/Dockerfile client-app/client-app-frontend"
                     sh "docker tag ${imageTag} ${IMAGE_NAME}:latest"
                 }
             }

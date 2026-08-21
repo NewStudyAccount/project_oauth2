@@ -90,7 +90,7 @@ project_oauth2/
 ├── pom.xml                                    # 根 Maven POM（聚合 5 个后端模块）
 │
 ├── auth-center/                               # 认证中心
-│   ├── backend/                               # Spring Boot 后端（端口 9000）
+│   ├── auth-server/                           # Spring Boot 后端（端口 9000）
 │   │   ├── pom.xml
 │   │   └── src/main/
 │   │       ├── java/com/example/authserver/
@@ -140,7 +140,7 @@ project_oauth2/
 │           └── views/                         # 页面（Dashboard, Client, User, Access, Audit）
 │
 ├── client-app/                                # 客户端应用（前后端分离）
-│   ├── backend/                               # Spring Boot 后端（端口 8082）
+│   ├── client-app/                            # Spring Boot 后端（端口 8082）
 │   │   ├── pom.xml
 │   │   └── src/main/
 │   │       ├── java/com/example/appspringboot/
@@ -151,7 +151,7 @@ project_oauth2/
 │   │       │   └── dto/UserDTO.java
 │   │       └── resources/application.yml
 │   │
-│   └── app-frontend/                          # Vue3 前端（公开客户端）
+│   └── client-app-frontend/                   # Vue3 前端（公开客户端）
 │       ├── vite.config.js
 │       └── src/
 │           ├── api/index.js                   # Axios + Bearer Token
@@ -268,8 +268,8 @@ docker-compose up -d
 
 ```bash
 # 执行 auth-center 的 schema.sql 和 data.sql
-mysql -h 192.168.99.100 -u root -p123456 < auth-center/backend/src/main/resources/db/schema.sql
-mysql -h 192.168.99.100 -u root -p123456 < auth-center/backend/src/main/resources/db/data.sql
+mysql -h 192.168.99.100 -u root -p123456 < auth-center/auth-server/src/main/resources/db/schema.sql
+mysql -h 192.168.99.100 -u root -p123456 < auth-center/auth-server/src/main/resources/db/data.sql
 
 # 执行 user-service 的 schema.sql
 mysql -h 192.168.99.100 -u root -p123456 < platform/user-service/src/main/resources/db/schema.sql
@@ -279,13 +279,13 @@ mysql -h 192.168.99.100 -u root -p123456 < platform/user-service/src/main/resour
 
 ```bash
 # 认证中心
-cd auth-center/backend && mvn spring-boot:run
+cd auth-center/auth-server && mvn spring-boot:run
 
 # 用户中心
 cd platform/user-service && mvn spring-boot:run
 
 # client-app 后端
-cd client-app/backend && mvn spring-boot:run
+cd client-app/client-app && mvn spring-boot:run
 
 # 资源服务
 cd platform/resource-api && mvn spring-boot:run
@@ -301,7 +301,7 @@ cd platform/gateway && mvn spring-boot:run
 cd auth-center/auth-server-frontend && npm install && npm run dev
 
 # client-app 前端
-cd client-app/app-frontend && npm install && npm run dev
+cd client-app/client-app-frontend && npm install && npm run dev
 
 # standalone-app 前端
 cd standalone-app/frontend && npm install && npm run dev
@@ -338,8 +338,8 @@ docker-compose up -d
 
 ```bash
 # 执行 auth-center 的 schema.sql 和 data.sql
-mysql -h <服务器IP> -u root -p123456 < auth-center/backend/src/main/resources/db/schema.sql
-mysql -h <服务器IP> -u root -p123456 < auth-center/backend/src/main/resources/db/data.sql
+mysql -h <服务器IP> -u root -p123456 < auth-center/auth-server/src/main/resources/db/schema.sql
+mysql -h <服务器IP> -u root -p123456 < auth-center/auth-server/src/main/resources/db/data.sql
 
 # 执行 user-service 的 schema.sql
 mysql -h <服务器IP> -u root -p123456 < platform/user-service/src/main/resources/db/schema.sql
@@ -353,9 +353,9 @@ mysql -h <服务器IP> -u root -p123456 < platform/user-service/src/main/resourc
 |------|-----------------|--------|------|
 | gateway | `platform/gateway/Jenkinsfile` | oauth2-gateway | 8080 |
 | user-service | `platform/user-service/Jenkinsfile` | oauth2-user | 8081 |
-| client-app 后端 | `client-app/backend/Jenkinsfile` | oauth2-client | 8082 |
+| client-app 后端 | `client-app/client-app/Jenkinsfile` | oauth2-client | 8082 |
 | resource-api | `platform/resource-api/Jenkinsfile` | oauth2-resource | 8083 |
-| auth-server | `auth-center/backend/Jenkinsfile` | oauth2-auth | 9000 |
+| auth-server | `auth-center/auth-server/Jenkinsfile` | oauth2-auth | 9000 |
 
 每个 Pipeline 执行：Checkout → Maven Build → Docker Build → Stop Old → Run New → Health Check
 
@@ -364,7 +364,7 @@ mysql -h <服务器IP> -u root -p123456 < platform/user-service/src/main/resourc
 | 服务 | Jenkinsfile 路径 | 容器名 | 端口 |
 |------|-----------------|--------|------|
 | auth 前端 | `auth-center/auth-server-frontend/Jenkinsfile` | oauth2-auth-ui | 80 |
-| app 前端 | `client-app/app-frontend/Jenkinsfile` | oauth2-app-ui | 8084 |
+| app 前端 | `client-app/client-app-frontend/Jenkinsfile` | oauth2-app-ui | 8084 |
 
 #### 5. 访问服务
 

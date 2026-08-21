@@ -38,12 +38,12 @@ docker network create oauth2-net
 | Jenkins 任务名 | Script Path | 说明 | 端口 |
 |---------------|-------------|------|------|
 | `oauth2-gateway` | `platform/gateway/Jenkinsfile` | API 网关 | 8080 |
-| `oauth2-auth` | `auth-center/backend/Jenkinsfile` | 认证中心 | 9000 |
+| `oauth2-auth` | `auth-center/auth-server/Jenkinsfile` | 认证中心 | 9000 |
 | `oauth2-user` | `platform/user-service/Jenkinsfile` | 用户中心 | 8081 |
-| `oauth2-client` | `client-app/backend/Jenkinsfile` | 客户端后端 | 8082 |
+| `oauth2-client` | `client-app/client-app/Jenkinsfile` | 客户端后端 | 8082 |
 | `oauth2-resource` | `platform/resource-api/Jenkinsfile` | 资源服务 | 8083 |
 | `oauth2-auth-ui` | `auth-center/auth-server-frontend/Jenkinsfile` | 认证前端 (Nginx) | 80 |
-| `oauth2-app-ui` | `client-app/app-frontend/Jenkinsfile` | 应用前端 (Nginx) | 8084 |
+| `oauth2-app-ui` | `client-app/client-app-frontend/Jenkinsfile` | 应用前端 (Nginx) | 8084 |
 
 ---
 
@@ -61,8 +61,8 @@ docker-compose up -d
 ### 第二步：初始化数据库
 
 ```bash
-mysql -h <服务器IP> -u root -p123456 < auth-center/backend/src/main/resources/db/schema.sql
-mysql -h <服务器IP> -u root -p123456 < auth-center/backend/src/main/resources/db/data.sql
+mysql -h <服务器IP> -u root -p123456 < auth-center/auth-server/src/main/resources/db/schema.sql
+mysql -h <服务器IP> -u root -p123456 < auth-center/auth-server/src/main/resources/db/data.sql
 mysql -h <服务器IP> -u root -p123456 < platform/user-service/src/main/resources/db/schema.sql
 ```
 
