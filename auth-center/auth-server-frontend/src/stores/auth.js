@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { generatePKCE, generateRandomString } from '../utils/pkce'
-import { buildAuthorizeUrl, exchangeCodeForToken, refreshAccessToken, buildLogoutUrl } from '../utils/auth'
+import { buildAuthorizeUrl, exchangeCodeForToken, refreshAccessToken, postLogout } from '../utils/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref(localStorage.getItem('access_token'))
@@ -66,14 +66,14 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * 登出（清除本地 Token + 跳转认证中心登出）
+   * 登出（清除本地 Token + POST 方式跳转认证中心登出）
    */
   function logout() {
     accessToken.value = null
     refreshToken.value = null
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
-    window.location.href = buildLogoutUrl()
+    postLogout()
   }
 
   return {

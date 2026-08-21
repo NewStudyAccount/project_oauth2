@@ -5,7 +5,7 @@
 const AUTH_SERVER = 'http://auth.local:9000'
 const CLIENT_ID = 'springboot-app'
 const REDIRECT_URI = `${window.location.origin}/callback`
-const SCOPES = 'openid profile email'
+const SCOPES = 'openid profile email offline_access'
 
 export function buildAuthorizeUrl(codeChallenge, state) {
   const params = new URLSearchParams({

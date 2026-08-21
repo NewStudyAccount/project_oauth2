@@ -76,8 +76,12 @@ export async function refreshAccessToken(refreshToken) {
 }
 
 /**
- * 构建登出 URL（跳转到认证中心销毁 Session）
+ * POST 方式登出（动态创建 form 表单提交，绕过 CORS 限制）
  */
-export function buildLogoutUrl() {
-  return `${AUTH_SERVER}/logout`
+export function postLogout() {
+  const form = document.createElement('form')
+  form.method = 'POST'
+  form.action = `${AUTH_SERVER}/logout`
+  document.body.appendChild(form)
+  form.submit()
 }

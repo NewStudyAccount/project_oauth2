@@ -14,7 +14,7 @@ export function buildAuthorizeUrl(codeChallenge, state) {
     response_type: 'code',
     client_id: CLIENT_ID,
     redirect_uri: REDIRECT_URI,
-    scope: 'openid profile email',
+    scope: 'openid profile email offline_access',
     state: state,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256'

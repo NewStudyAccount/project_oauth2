@@ -16,6 +16,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.io.IOException;
 import java.util.Map;
@@ -67,9 +68,9 @@ public class SecurityConfig {
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
                 )
-                // CSRF：页面端点保留 CSRF，/oauth2/** 豁免（OAuth2 端点自带防护）
+                // CSRF：页面端点保留 CSRF，/oauth2/** 豁免（OAuth2 端点自带防护），/logout 豁免（登出无需防 CSRF）
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/oauth2/**")
+                        .ignoringRequestMatchers("/oauth2/**", "/logout")
                 );
 
         return http.build();
